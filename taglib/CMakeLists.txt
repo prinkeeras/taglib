@@ -26,7 +26,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/it
   ${CMAKE_CURRENT_SOURCE_DIR}/xm
   ${PARENT_DIR}/3rdparty
-  ${PARENT_DIR}
+  ${PARENT_DIR}/
 )
 
 if(ZLIB_FOUND)
