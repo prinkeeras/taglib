@@ -1,4 +1,5 @@
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+get_filename_component(PARENT_DIR ${CMAKE_CURRENT_SOURCE_DIR} PATH)
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/toolkit
   ${CMAKE_CURRENT_SOURCE_DIR}/asf
@@ -24,7 +25,8 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/s3m
   ${CMAKE_CURRENT_SOURCE_DIR}/it
   ${CMAKE_CURRENT_SOURCE_DIR}/xm
-  ${taglib_SOURCE_DIR}/3rdparty
+  ${PARENT_DIR}/3rdparty
+  ${PARENT_DIR}/
 )
 
 if(ZLIB_FOUND)
