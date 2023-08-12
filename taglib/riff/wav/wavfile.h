@@ -93,7 +93,10 @@ namespace TagLib {
         /*!
          * Destroys this instance of the File.
          */
-        virtual ~File();
+        ~File() override;
+
+        File(const File &) = delete;
+        File &operator=(const File &) = delete;
 
         /*!
          * Returns the ID3v2 Tag for this file.
@@ -101,7 +104,7 @@ namespace TagLib {
          * \note This method does not return all the tags for this file for
          * backward compatibility.  Will be fixed in TagLib 2.0.
          */
-        ID3v2::Tag *tag() const;
+        ID3v2::Tag *tag() const override;
 
         /*!
          * Returns the ID3v2 Tag for this file.
@@ -138,31 +141,26 @@ namespace TagLib {
          * Implements the unified property interface -- export function.
          * This method forwards to ID3v2::Tag::properties().
          */
-        PropertyMap properties() const;
+        PropertyMap properties() const override;
 
-        void removeUnsupportedProperties(const StringList &properties);
+        void removeUnsupportedProperties(const StringList &properties) override;
 
         /*!
          * Implements the unified property interface -- import function.
          * This method forwards to ID3v2::Tag::setProperties().
          */
-        PropertyMap setProperties(const PropertyMap &);
+        PropertyMap setProperties(const PropertyMap &) override;
 
         /*!
          * Returns the WAV::Properties for this file.  If no audio properties
          * were read then this will return a null pointer.
          */
-        virtual Properties *audioProperties() const;
+        Properties *audioProperties() const override;
 
         /*!
          * Saves the file.
          */
-        virtual bool save();
-
-        /*!
-         * \deprecated Use save(TagTypes, StripTags, ID3v2::Version).
-         */
-        TAGLIB_DEPRECATED bool save(TagTypes tags, bool stripOthers, int id3v2Version = 4);
+        bool save() override;
 
         /*!
          * Save the file.  If \a strip is specified, it is possible to choose if
@@ -197,16 +195,13 @@ namespace TagLib {
         static bool isSupported(IOStream *stream);
 
       private:
-        File(const File &);
-        File &operator=(const File &);
-
         void read(bool readProperties);
         void removeTagChunks(TagTypes tags);
 
         friend class Properties;
 
         class FilePrivate;
-        FilePrivate *d;
+        std::unique_ptr<FilePrivate> d;
       };
     }  // namespace WAV
   }  // namespace RIFF

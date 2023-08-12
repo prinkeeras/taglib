@@ -29,6 +29,8 @@
 #include "mpegheader.h"
 #include "taglib_export.h"
 
+#include <memory>
+
 namespace TagLib {
 
   class ByteVector;
@@ -84,6 +86,9 @@ namespace TagLib {
        */
       virtual ~XingHeader();
 
+      XingHeader(const XingHeader &) = delete;
+      XingHeader &operator=(const XingHeader &) = delete;
+
       /*!
        * Returns true if the data was parsed properly and if there is a valid
        * Xing/VBRI header present.
@@ -105,23 +110,11 @@ namespace TagLib {
        */
       HeaderType type() const;
 
-      /*!
-       * Returns the offset for the start of this Xing header, given the
-       * version and channels of the frame
-       *
-       * \deprecated Always returns 0.
-       */
-      TAGLIB_DEPRECATED static int xingHeaderOffset(TagLib::MPEG::Header::Version v,
-                                                    TagLib::MPEG::Header::ChannelMode c);
-
     private:
-      XingHeader(const XingHeader &);
-      XingHeader &operator=(const XingHeader &);
-
       void parse(const ByteVector &data);
 
       class XingHeaderPrivate;
-      XingHeaderPrivate *d;
+      std::unique_ptr<XingHeaderPrivate> d;
     };
   }  // namespace MPEG
 }  // namespace TagLib

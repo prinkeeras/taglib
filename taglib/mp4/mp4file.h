@@ -26,11 +26,11 @@
 #ifndef TAGLIB_MP4FILE_H
 #define TAGLIB_MP4FILE_H
 
+#include "mp4tag.h"
 #include "tag.h"
 #include "tfile.h"
 #include "taglib_export.h"
 #include "mp4properties.h"
-#include "mp4tag.h"
 
 namespace TagLib {
   //! An implementation of MP4 (AAC, ALAC, ...) metadata
@@ -83,7 +83,10 @@ namespace TagLib {
       /*!
        * Destroys this instance of the File.
        */
-      virtual ~File();
+      ~File() override;
+
+      File(const File &) = delete;
+      File &operator=(const File &) = delete;
 
       /*!
        * Returns a pointer to the MP4 tag of the file.
@@ -95,35 +98,35 @@ namespace TagLib {
        * deleted by the user.  It will be deleted when the file (object) is
        * destroyed.
        */
-      Tag *tag() const;
+      Tag *tag() const override;
 
       /*!
        * Implements the unified property interface -- export function.
        */
-      PropertyMap properties() const;
+      PropertyMap properties() const override;
 
       /*!
        * Removes unsupported properties. Forwards to the actual Tag's
        * removeUnsupportedProperties() function.
        */
-      void removeUnsupportedProperties(const StringList &properties);
+      void removeUnsupportedProperties(const StringList &properties) override;
 
       /*!
        * Implements the unified property interface -- import function.
        */
-      PropertyMap setProperties(const PropertyMap &);
+      PropertyMap setProperties(const PropertyMap &) override;
 
       /*!
        * Returns the MP4 audio properties for this file.
        */
-      Properties *audioProperties() const;
+      Properties *audioProperties() const override;
 
       /*!
        * Save the file.
        *
        * This returns true if the save was successful.
        */
-      bool save();
+      bool save() override;
 
       /*!
        * This will strip the tags that match the OR-ed together TagTypes from the
@@ -153,7 +156,7 @@ namespace TagLib {
       void read(bool readProperties);
 
       class FilePrivate;
-      FilePrivate *d;
+      std::unique_ptr<FilePrivate> d;
     };
   }  // namespace MP4
 }  // namespace TagLib

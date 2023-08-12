@@ -35,16 +35,16 @@ namespace TagLib {
     {
     public:
       Properties(AudioProperties::ReadStyle propertiesStyle);
-      virtual ~Properties();
+      ~Properties() override;
 
-      int length()               const;
-      int lengthInSeconds()      const;
-      int lengthInMilliseconds() const;
-      int bitrate()              const;
-      int sampleRate()           const;
-      int channels()             const;
+      Properties(const Properties &) = delete;
+      Properties &operator=(const Properties &) = delete;
 
-      unsigned int  instrumentCount()  const;
+      int bitrate() const override;
+      int sampleRate() const override;
+      int channels() const override;
+
+      unsigned int instrumentCount() const;
       unsigned char lengthInPatterns() const;
 
       void setChannels(int channels);
@@ -53,13 +53,8 @@ namespace TagLib {
       void setLengthInPatterns(unsigned char lengthInPatterns);
 
     private:
-      friend class File;
-
-      Properties(const Properties&);
-      Properties &operator=(const Properties&);
-
       class PropertiesPrivate;
-      PropertiesPrivate *d;
+      std::unique_ptr<PropertiesPrivate> d;
     };
   }  // namespace Mod
 }  // namespace TagLib

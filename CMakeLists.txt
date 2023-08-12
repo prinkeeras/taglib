@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
 
 project(taglib)
 
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 include(CTest)
@@ -62,8 +63,10 @@ if(MSVC)
   # Disable warnings for internal invocations of API functions
   # that have been marked with TAGLIB_DEPRECATED
   # https://docs.microsoft.com/en-us/cpp/error-messages/compiler-warnings/compiler-warning-level-3-c4996
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4996")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4996")
+  # Also disable C4910: '__declspec(dllexport)' and 'extern' are incompatible on an explicit instantiation
+  # and C4251: needs to have dll-interface to be used by clients.
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4996 /wd4910 /wd4251")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4996 /wd4910 /wd4251")
 endif()
 
 # Read version information from file taglib/toolkit/taglib.h into variables
@@ -88,17 +91,12 @@ else()
   set(TAGLIB_LIB_VERSION_STRING "${TAGLIB_LIB_MAJOR_VERSION}.${TAGLIB_LIB_MINOR_VERSION}.${TAGLIB_LIB_PATCH_VERSION}")
 endif()
 
-# 1. If the library source code has changed at all since the last update, then increment revision.
-# 2. If any interfaces have been added, removed, or changed since the last update, increment current, and set revision to 0.
-# 3. If any interfaces have been added since the last public release, then increment age.
-# 4. If any interfaces have been removed since the last public release, then set age to 0.
-set(TAGLIB_SOVERSION_CURRENT  20)
-set(TAGLIB_SOVERSION_REVISION 0)
-set(TAGLIB_SOVERSION_AGE      19)
-
-math(EXPR TAGLIB_SOVERSION_MAJOR "${TAGLIB_SOVERSION_CURRENT} - ${TAGLIB_SOVERSION_AGE}")
-math(EXPR TAGLIB_SOVERSION_MINOR "${TAGLIB_SOVERSION_AGE}")
-math(EXPR TAGLIB_SOVERSION_PATCH "${TAGLIB_SOVERSION_REVISION}")
+# Major version: increase it if you break ABI compatibility.
+# Minor version: increase it if you add ABI compatible features.
+# Patch version: increase it for bug fix releases.
+set(TAGLIB_SOVERSION_MAJOR 2)
+set(TAGLIB_SOVERSION_MINOR 0)
+set(TAGLIB_SOVERSION_PATCH 0)
 
 include(ConfigureChecks.cmake)
 

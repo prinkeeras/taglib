@@ -23,14 +23,12 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include <tstring.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
-#include "mp4atom.h"
-#include "mp4tag.h"
 #include "mp4file.h"
+
+#include "tdebug.h"
+#include "tstring.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
 
 using namespace TagLib;
 
@@ -38,16 +36,7 @@ namespace
 {
   bool checkValid(const MP4::AtomList &list)
   {
-    for(MP4::AtomList::ConstIterator it = list.begin(); it != list.end(); ++it) {
-
-      if((*it)->length == 0)
-        return false;
-
-      if(!checkValid((*it)->children))
-        return false;
-    }
-
-    return true;
+    return std::none_of(list.begin(), list.end(), [](const auto &a) { return a->length == 0 || !checkValid(a->children); });
   }
 }  // namespace
 
@@ -55,9 +44,9 @@ class MP4::File::FilePrivate
 {
 public:
   FilePrivate() :
-    tag(0),
-    atoms(0),
-    properties(0) {}
+    tag(nullptr),
+    atoms(nullptr),
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
@@ -65,6 +54,9 @@ public:
     delete tag;
     delete properties;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   MP4::Tag        *tag;
   MP4::Atoms      *atoms;
@@ -89,7 +81,7 @@ bool MP4::File::isSupported(IOStream *stream)
 
 MP4::File::File(FileName file, bool readProperties, AudioProperties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -97,16 +89,13 @@ MP4::File::File(FileName file, bool readProperties, AudioProperties::ReadStyle) 
 
 MP4::File::File(IOStream *stream, bool readProperties, AudioProperties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-MP4::File::~File()
-{
-  delete d;
-}
+MP4::File::~File() = default;
 
 MP4::Tag *
 MP4::File::tag() const
@@ -198,5 +187,5 @@ MP4::File::strip(int tags)
 bool
 MP4::File::hasMP4Tag() const
 {
-  return (d->atoms->find("moov", "udta", "meta", "ilst") != 0);
+  return (d->atoms->find("moov", "udta", "meta", "ilst") != nullptr);
 }

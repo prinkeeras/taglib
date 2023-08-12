@@ -23,18 +23,20 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tstring.h>
-#include <tfile.h>
-#include <tdebug.h>
-#include <trefcounter.h>
-
 #include "mpegheader.h"
+
+#include "tbytevector.h"
+#include "tdebug.h"
+#include "tfile.h"
+#include "tstring.h"
+
 #include "mpegutils.h"
+
+#include <array>
 
 using namespace TagLib;
 
-class MPEG::Header::HeaderPrivate : public RefCounter
+class MPEG::Header::HeaderPrivate
 {
 public:
   HeaderPrivate() :
@@ -69,29 +71,15 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-MPEG::Header::Header(const ByteVector &data) :
-  d(new HeaderPrivate())
-{
-  debug("MPEG::Header::Header() - This constructor is no longer used.");
-}
-
-MPEG::Header::Header(File *file, long offset, bool checkLength) :
-  d(new HeaderPrivate())
+MPEG::Header::Header(File *file, offset_t offset, bool checkLength) :
+  d(std::make_shared<HeaderPrivate>())
 {
   parse(file, offset, checkLength);
 }
 
-MPEG::Header::Header(const Header &h) :
-  d(h.d)
-{
-  d->ref();
-}
+MPEG::Header::Header(const Header &h) = default;
 
-MPEG::Header::~Header()
-{
-  if(d->deref())
-    delete d;
-}
+MPEG::Header::~Header() = default;
 
 bool MPEG::Header::isValid() const
 {
@@ -158,11 +146,7 @@ MPEG::Header &MPEG::Header::operator=(const Header &h)
   if(&h == this)
     return *this;
 
-  if(d->deref())
-    delete d;
-
   d = h.d;
-  d->ref();
   return *this;
 }
 
@@ -170,7 +154,7 @@ MPEG::Header &MPEG::Header::operator=(const Header &h)
 // private members
 ////////////////////////////////////////////////////////////////////////////////
 
-void MPEG::Header::parse(File *file, long offset, bool checkLength)
+void MPEG::Header::parse(File *file, offset_t offset, bool checkLength)
 {
   file->seek(offset);
   const ByteVector data = file->readBlock(4);
@@ -217,17 +201,19 @@ void MPEG::Header::parse(File *file, long offset, bool checkLength)
 
   // Set the bitrate
 
-  static const int bitrates[2][3][16] = {
-    { // Version 1
-      { 0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0 }, // layer 1
-      { 0, 32, 48, 56, 64,  80,  96,  112, 128, 160, 192, 224, 256, 320, 384, 0 }, // layer 2
-      { 0, 32, 40, 48, 56,  64,  80,  96,  112, 128, 160, 192, 224, 256, 320, 0 }  // layer 3
+  static constexpr std::array bitrates {
+    std::array {
+      // Version 1
+      std::array { 0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 0 }, // layer 1
+      std::array { 0, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 0 },    // layer 2
+      std::array { 0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0 }      // layer 3
     },
-    { // Version 2 or 2.5
-      { 0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0 }, // layer 1
-      { 0, 8,  16, 24, 32, 40, 48, 56,  64,  80,  96,  112, 128, 144, 160, 0 }, // layer 2
-      { 0, 8,  16, 24, 32, 40, 48, 56,  64,  80,  96,  112, 128, 144, 160, 0 }  // layer 3
-    }
+    std::array {
+      // Version 2 or 2.5
+      std::array { 0, 32, 48, 56, 64, 80, 96, 112, 128, 144, 160, 176, 192, 224, 256, 0 }, // layer 1
+      std::array { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 },      // layer 2
+      std::array { 0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0 }       // layer 3
+    },
   };
 
   const int versionIndex = (d->version == Version1) ? 0 : 1;
@@ -245,10 +231,10 @@ void MPEG::Header::parse(File *file, long offset, bool checkLength)
 
   // Set the sample rate
 
-  static const int sampleRates[3][4] = {
-    { 44100, 48000, 32000, 0 }, // Version 1
-    { 22050, 24000, 16000, 0 }, // Version 2
-    { 11025, 12000, 8000,  0 }  // Version 2.5
+  static constexpr std::array sampleRates {
+    std::array { 44100, 48000, 32000, 0 }, // Version 1
+    std::array { 22050, 24000, 16000, 0 }, // Version 2
+    std::array { 11025, 12000, 8000, 0 }   // Version 2.5
   };
 
   // The sample rate index is encoded as two bits in the 3nd byte, i.e. xxxx11xx
@@ -274,18 +260,18 @@ void MPEG::Header::parse(File *file, long offset, bool checkLength)
 
   // Samples per frame
 
-  static const int samplesPerFrame[3][2] = {
+  static constexpr std::array samplesPerFrame {
     // MPEG1, 2/2.5
-    {  384,   384 }, // Layer I
-    { 1152,  1152 }, // Layer II
-    { 1152,   576 }  // Layer III
+    std::pair(384, 384),   // Layer I
+    std::pair(1152, 1152), // Layer II
+    std::pair(1152, 576),  // Layer III
   };
 
-  d->samplesPerFrame = samplesPerFrame[layerIndex][versionIndex];
+  d->samplesPerFrame = versionIndex ? samplesPerFrame[layerIndex].second : samplesPerFrame[layerIndex].first;
 
   // Calculate the frame length
 
-  static const int paddingSize[3] = { 4, 1, 1 };
+  static constexpr std::array paddingSize { 4, 1, 1 };
 
   d->frameLength = d->samplesPerFrame * d->bitrate * 125 / d->sampleRate;
 

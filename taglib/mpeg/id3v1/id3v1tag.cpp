@@ -23,10 +23,11 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include <tfile.h>
-
 #include "id3v1tag.h"
+
+#include "tdebug.h"
+#include "tfile.h"
+
 #include "id3v1genres.h"
 
 using namespace TagLib;
@@ -42,13 +43,13 @@ class ID3v1::Tag::TagPrivate
 {
 public:
   TagPrivate() :
-    file(0),
+    file(nullptr),
     tagOffset(0),
     track(0),
     genre(255) {}
 
   File *file;
-  long tagOffset;
+  offset_t tagOffset;
 
   String title;
   String artist;
@@ -59,13 +60,17 @@ public:
   unsigned char genre;
 };
 
+class ID3v1::StringHandler::StringHandlerPrivate
+{
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // StringHandler implementation
 ////////////////////////////////////////////////////////////////////////////////
 
-StringHandler::StringHandler()
-{
-}
+StringHandler::StringHandler() = default;
+
+StringHandler::~StringHandler() = default;
 
 String ID3v1::StringHandler::parse(const ByteVector &data) const
 {
@@ -84,12 +89,12 @@ ByteVector ID3v1::StringHandler::render(const String &s) const
 ////////////////////////////////////////////////////////////////////////////////
 
 ID3v1::Tag::Tag() :
-  d(new TagPrivate())
+  d(std::make_unique<TagPrivate>())
 {
 }
 
-ID3v1::Tag::Tag(File *file, long tagOffset) :
-  d(new TagPrivate())
+ID3v1::Tag::Tag(File *file, offset_t tagOffset) :
+  d(std::make_unique<TagPrivate>())
 {
   d->file = file;
   d->tagOffset = tagOffset;
@@ -97,10 +102,7 @@ ID3v1::Tag::Tag(File *file, long tagOffset) :
   read();
 }
 
-ID3v1::Tag::~Tag()
-{
-  delete d;
-}
+ID3v1::Tag::~Tag() = default;
 
 ByteVector ID3v1::Tag::render() const
 {

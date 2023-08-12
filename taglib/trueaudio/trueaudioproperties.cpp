@@ -27,11 +27,12 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tdebug.h>
+#include "trueaudioproperties.h"
+
+#include "tstring.h"
+#include "tdebug.h"
 #include <bitset>
 
-#include "trueaudioproperties.h"
 #include "trueaudiofile.h"
 
 using namespace TagLib;
@@ -61,22 +62,14 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-TrueAudio::Properties::Properties(const ByteVector &data, long streamLength, ReadStyle style) :
+TrueAudio::Properties::Properties(const ByteVector &data, offset_t streamLength, ReadStyle style) :
   AudioProperties(style),
-  d(new PropertiesPrivate())
+  d(std::make_unique<PropertiesPrivate>())
 {
   read(data, streamLength);
 }
 
-TrueAudio::Properties::~Properties()
-{
-  delete d;
-}
-
-int TrueAudio::Properties::length() const
-{
-  return lengthInSeconds();
-}
+TrueAudio::Properties::~Properties() = default;
 
 int TrueAudio::Properties::lengthInSeconds() const
 {
@@ -122,7 +115,7 @@ int TrueAudio::Properties::ttaVersion() const
 // private members
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrueAudio::Properties::read(const ByteVector &data, long streamLength)
+void TrueAudio::Properties::read(const ByteVector &data, offset_t streamLength)
 {
   if(data.size() < 4) {
     debug("TrueAudio::Properties::read() -- data is too short.");

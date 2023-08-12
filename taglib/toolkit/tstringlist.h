@@ -58,6 +58,8 @@ namespace TagLib {
      */
     StringList(const StringList &l);
 
+    StringList &operator=(const StringList &);
+
     /*!
      * Constructs a StringList with \a s as a member.
      */
@@ -74,7 +76,7 @@ namespace TagLib {
     /*!
      * Destroys this StringList instance.
      */
-    virtual ~StringList();
+    ~StringList();
 
     /*!
      * Concatenate the list of strings into one string separated by \a separator.
@@ -101,7 +103,7 @@ namespace TagLib {
 
   private:
     class StringListPrivate;
-    StringListPrivate *d;
+    std::unique_ptr<StringListPrivate> d;
   };
 
 }  // namespace TagLib

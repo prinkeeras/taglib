@@ -24,26 +24,26 @@
  ***************************************************************************/
 
 #include <string>
-#include <stdio.h>
-#include <tag.h>
-#include <fileref.h>
-#include <oggflacfile.h>
-#include <vorbisfile.h>
-#include <mpegfile.h>
-#include <mpcfile.h>
-#include <asffile.h>
-#include <speexfile.h>
-#include <flacfile.h>
-#include <trueaudiofile.h>
-#include <mp4file.h>
-#include <wavfile.h>
-#include <apefile.h>
-#include <aifffile.h>
-#include <wavpackfile.h>
-#include <opusfile.h>
-#include <xmfile.h>
-#include <tfilestream.h>
-#include <tbytevectorstream.h>
+#include <cstdio>
+#include "tag.h"
+#include "fileref.h"
+#include "oggflacfile.h"
+#include "vorbisfile.h"
+#include "mpegfile.h"
+#include "mpcfile.h"
+#include "asffile.h"
+#include "speexfile.h"
+#include "flacfile.h"
+#include "trueaudiofile.h"
+#include "mp4file.h"
+#include "wavfile.h"
+#include "apefile.h"
+#include "aifffile.h"
+#include "wavpackfile.h"
+#include "opusfile.h"
+#include "xmfile.h"
+#include "tfilestream.h"
+#include "tbytevectorstream.h"
 #include <cppunit/extensions/HelperMacros.h>
 #include "utils.h"
 
@@ -55,7 +55,7 @@ namespace
   class DummyResolver : public FileRef::FileTypeResolver
   {
   public:
-    virtual File *createFile(FileName fileName, bool, AudioProperties::ReadStyle) const
+    File *createFile(FileName fileName, bool, AudioProperties::ReadStyle) const override
     {
       return new Ogg::Vorbis::File(fileName);
     }
@@ -64,17 +64,17 @@ namespace
   class DummyStreamResolver : public FileRef::StreamTypeResolver
   {
   public:
-    virtual File *createFile(FileName, bool, AudioProperties::ReadStyle) const
+    File *createFile(FileName, bool, AudioProperties::ReadStyle) const override
     {
-      return 0;
+      return nullptr;
     }
 
-    virtual File *createFileFromStream(IOStream *s, bool, AudioProperties::ReadStyle) const
+    File *createFileFromStream(IOStream *s, bool, AudioProperties::ReadStyle) const override
     {
       return new MP4::File(s);
     }
   };
-}
+} // namespace
 
 class TestFileRef : public CppUnit::TestFixture
 {
@@ -134,8 +134,8 @@ public:
       CPPUNIT_ASSERT_EQUAL(f.tag()->genre(), String("Test!"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->album(), String("albummmm"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->comment(), String("a comment"));
-      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), (unsigned int)5);
-      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), (unsigned int)2020);
+      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), static_cast<unsigned int>(5));
+      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), static_cast<unsigned int>(2020));
       f.tag()->setArtist("ttest artist");
       f.tag()->setTitle("ytest title");
       f.tag()->setGenre("uTest!");
@@ -153,8 +153,8 @@ public:
       CPPUNIT_ASSERT_EQUAL(f.tag()->genre(), String("uTest!"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->album(), String("ialbummmm"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->comment(), String("another comment"));
-      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), (unsigned int)7);
-      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), (unsigned int)2080);
+      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), static_cast<unsigned int>(7));
+      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), static_cast<unsigned int>(2080));
     }
 
     {
@@ -167,8 +167,8 @@ public:
       CPPUNIT_ASSERT_EQUAL(f.tag()->genre(), String("uTest!"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->album(), String("ialbummmm"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->comment(), String("another comment"));
-      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), (unsigned int)7);
-      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), (unsigned int)2080);
+      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), static_cast<unsigned int>(7));
+      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), static_cast<unsigned int>(2080));
       f.tag()->setArtist("test artist");
       f.tag()->setTitle("test title");
       f.tag()->setGenre("Test!");
@@ -190,8 +190,8 @@ public:
       CPPUNIT_ASSERT_EQUAL(f.tag()->genre(), String("Test!"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->album(), String("albummmm"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->comment(), String("a comment"));
-      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), (unsigned int)5);
-      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), (unsigned int)2020);
+      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), static_cast<unsigned int>(5));
+      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), static_cast<unsigned int>(2020));
 
       fs.seek(0);
       fileContent = fs.readBlock(fs.length());
@@ -207,8 +207,8 @@ public:
       CPPUNIT_ASSERT_EQUAL(f.tag()->genre(), String("Test!"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->album(), String("albummmm"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->comment(), String("a comment"));
-      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), (unsigned int)5);
-      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), (unsigned int)2020);
+      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), static_cast<unsigned int>(5));
+      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), static_cast<unsigned int>(2020));
       f.tag()->setArtist("ttest artist");
       f.tag()->setTitle("ytest title");
       f.tag()->setGenre("uTest!");
@@ -230,8 +230,8 @@ public:
       CPPUNIT_ASSERT_EQUAL(f.tag()->genre(), String("uTest!"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->album(), String("ialbummmm"));
       CPPUNIT_ASSERT_EQUAL(f.tag()->comment(), String("another comment"));
-      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), (unsigned int)7);
-      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), (unsigned int)2080);
+      CPPUNIT_ASSERT_EQUAL(f.tag()->track(), static_cast<unsigned int>(7));
+      CPPUNIT_ASSERT_EQUAL(f.tag()->year(), static_cast<unsigned int>(2080));
     }
   }
 
@@ -391,7 +391,7 @@ public:
   {
     {
       FileRef f(TEST_FILE_PATH_C("xing.mp3"));
-      CPPUNIT_ASSERT(dynamic_cast<MPEG::File *>(f.file()) != NULL);
+      CPPUNIT_ASSERT(dynamic_cast<MPEG::File *>(f.file()) != nullptr);
     }
 
     DummyResolver resolver;
@@ -399,7 +399,7 @@ public:
 
     {
       FileRef f(TEST_FILE_PATH_C("xing.mp3"));
-      CPPUNIT_ASSERT(dynamic_cast<Ogg::Vorbis::File *>(f.file()) != NULL);
+      CPPUNIT_ASSERT(dynamic_cast<Ogg::Vorbis::File *>(f.file()) != nullptr);
     }
 
     DummyStreamResolver streamResolver;
@@ -408,7 +408,7 @@ public:
     {
       FileStream s(TEST_FILE_PATH_C("xing.mp3"));
       FileRef f(&s);
-      CPPUNIT_ASSERT(dynamic_cast<MP4::File *>(f.file()) != NULL);
+      CPPUNIT_ASSERT(dynamic_cast<MP4::File *>(f.file()) != nullptr);
     }
   }
 

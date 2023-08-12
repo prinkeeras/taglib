@@ -31,16 +31,19 @@
 #define WANT_CLASS_INSTANTIATION_OF_MAP (1)
 #endif
 
-#include <tfile.h>
-#include <tstring.h>
-#include <tmap.h>
-#include <tpropertymap.h>
-#include <tdebug.h>
-#include <tutils.h>
-
 #include "apetag.h"
+
+#include "tfile.h"
+#include "tstring.h"
+#include "tmap.h"
+#include "tpropertymap.h"
+#include "tdebug.h"
+#include "tutils.h"
+
 #include "apefooter.h"
 #include "apeitem.h"
+
+#include <array>
 
 using namespace TagLib;
 using namespace APE;
@@ -52,23 +55,17 @@ namespace
 
   bool isKeyValid(const ByteVector &key)
   {
-    const char *invalidKeys[] = { "ID3", "TAG", "OGGS", "MP+", 0 };
+    static constexpr std::array invalidKeys { "ID3", "TAG", "OGGS", "MP+" };
 
     // only allow printable ASCII including space (32..126)
 
-    for(ByteVector::ConstIterator it = key.begin(); it != key.end(); ++it) {
+    for(auto it = key.begin(); it != key.end(); ++it) {
       const int c = static_cast<unsigned char>(*it);
       if(c < 32 || c > 126)
         return false;
     }
 
-    const String upperKey = String(key).upper();
-    for(size_t i = 0; invalidKeys[i] != 0; ++i) {
-      if(upperKey == invalidKeys[i])
-        return false;
-    }
-
-    return true;
+    return std::none_of(invalidKeys.begin(), invalidKeys.end(), [upperKey = String(key).upper()](auto k) { return upperKey == k; });
   }
 }  // namespace
 
@@ -76,11 +73,11 @@ class APE::Tag::TagPrivate
 {
 public:
   TagPrivate() :
-    file(0),
+    file(nullptr),
     footerLocation(0) {}
 
   File *file;
-  long footerLocation;
+  offset_t footerLocation;
 
   Footer footer;
   ItemListMap itemListMap;
@@ -91,12 +88,12 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 APE::Tag::Tag() :
-  d(new TagPrivate())
+  d(std::make_unique<TagPrivate>())
 {
 }
 
-APE::Tag::Tag(TagLib::File *file, long footerLocation) :
-  d(new TagPrivate())
+APE::Tag::Tag(TagLib::File *file, offset_t footerLocation) :
+  d(std::make_unique<TagPrivate>())
 {
   d->file = file;
   d->footerLocation = footerLocation;
@@ -104,10 +101,7 @@ APE::Tag::Tag(TagLib::File *file, long footerLocation) :
   read();
 }
 
-APE::Tag::~Tag()
-{
-  delete d;
-}
+APE::Tag::~Tag() = default;
 
 ByteVector APE::Tag::fileIdentifier()
 {
@@ -202,23 +196,22 @@ namespace
   // conversions of tag keys between what we use in PropertyMap and what's usual
   // for APE tags
   //                usual,         APE
-  const std::pair<const char *, const char *> keyConversions[] = {
-    std::make_pair("TRACKNUMBER", "TRACK"),
-    std::make_pair("DATE",        "YEAR"),
-    std::make_pair("ALBUMARTIST", "ALBUM ARTIST"),
-    std::make_pair("DISCNUMBER",  "DISC"),
-    std::make_pair("REMIXER",     "MIXARTIST"),
-    std::make_pair("RELEASESTATUS", "MUSICBRAINZ_ALBUMSTATUS"),
-    std::make_pair("RELEASETYPE", "MUSICBRAINZ_ALBUMTYPE"),
+  constexpr std::array keyConversions {
+    std::pair("TRACKNUMBER", "TRACK"),
+    std::pair("DATE", "YEAR"),
+    std::pair("ALBUMARTIST", "ALBUM ARTIST"),
+    std::pair("DISCNUMBER", "DISC"),
+    std::pair("REMIXER", "MIXARTIST"),
+    std::pair("RELEASESTATUS", "MUSICBRAINZ_ALBUMSTATUS"),
+    std::pair("RELEASETYPE", "MUSICBRAINZ_ALBUMTYPE"),
   };
-  const size_t keyConversionsSize = sizeof(keyConversions) / sizeof(keyConversions[0]);
 }  // namespace
 
 PropertyMap APE::Tag::properties() const
 {
   PropertyMap properties;
-  ItemListMap::ConstIterator it = itemListMap().begin();
-  for(; it != itemListMap().end(); ++it) {
+  const auto &items = itemListMap();
+  for(auto it = items.begin(); it != items.end(); ++it) {
     String tagName = it->first.upper();
     // if the item is Binary or Locator, or if the key is an invalid string,
     // add to unsupportedData
@@ -227,9 +220,9 @@ PropertyMap APE::Tag::properties() const
     }
     else {
       // Some tags need to be handled specially
-      for(size_t i = 0; i < keyConversionsSize; ++i) {
-        if(tagName == keyConversions[i].second)
-          tagName = keyConversions[i].first;
+      for(const auto &[k, t] : keyConversions) {
+        if(tagName == t)
+          tagName = k;
       }
       properties[tagName].append(it->second.toStringList());
     }
@@ -239,8 +232,7 @@ PropertyMap APE::Tag::properties() const
 
 void APE::Tag::removeUnsupportedProperties(const StringList &properties)
 {
-  StringList::ConstIterator it = properties.begin();
-  for(; it != properties.end(); ++it)
+  for(auto it = properties.begin(); it != properties.end(); ++it)
     removeItem(*it);
 }
 
@@ -249,29 +241,28 @@ PropertyMap APE::Tag::setProperties(const PropertyMap &origProps)
   PropertyMap properties(origProps); // make a local copy that can be modified
 
   // see comment in properties()
-  for(size_t i = 0; i < keyConversionsSize; ++i)
-    if(properties.contains(keyConversions[i].first)) {
-      properties.insert(keyConversions[i].second, properties[keyConversions[i].first]);
-      properties.erase(keyConversions[i].first);
+  for(const auto &[k, t] : keyConversions)
+    if(properties.contains(k)) {
+      properties.insert(t, properties[k]);
+      properties.erase(k);
     }
 
   // first check if tags need to be removed completely
   StringList toRemove;
-  ItemListMap::ConstIterator remIt = itemListMap().begin();
-  for(; remIt != itemListMap().end(); ++remIt) {
+  const auto &items = itemListMap();
+  for(auto remIt = items.begin(); remIt != items.end(); ++remIt) {
     String key = remIt->first.upper();
     // only remove if a) key is valid, b) type is text, c) key not contained in new properties
     if(!key.isEmpty() && remIt->second.type() == APE::Item::Text && !properties.contains(key))
       toRemove.append(remIt->first);
   }
 
-  for(StringList::ConstIterator removeIt = toRemove.begin(); removeIt != toRemove.end(); removeIt++)
+  for(auto removeIt = toRemove.cbegin(); removeIt != toRemove.cend(); removeIt++)
     removeItem(*removeIt);
 
   // now sync in the "forward direction"
-  PropertyMap::ConstIterator it = properties.begin();
   PropertyMap invalid;
-  for(; it != properties.end(); ++it) {
+  for(auto it = properties.begin(); it != properties.cend(); ++it) {
     const String &tagName = it->first;
     if(!checkKey(tagName))
       invalid.insert(it->first, it->second);
@@ -279,7 +270,7 @@ PropertyMap APE::Tag::setProperties(const PropertyMap &origProps)
       if(it->second.isEmpty())
         removeItem(tagName);
       else {
-        StringList::ConstIterator valueIt = it->second.begin();
+        auto valueIt = it->second.begin();
         addValue(tagName, *valueIt, true);
         ++valueIt;
         for(; valueIt != it->second.end(); ++valueIt)
@@ -324,7 +315,7 @@ void APE::Tag::addValue(const String &key, const String &value, bool replace)
   // Text items may contain more than one value.
   // Binary or locator items may have only one value, hence always replaced.
 
-  ItemListMap::Iterator it = d->itemListMap.find(key.upper());
+  auto it = d->itemListMap.find(key.upper());
 
   if(it != d->itemListMap.end() && it->second.type() == Item::Text)
     it->second.appendValue(value);
@@ -382,7 +373,7 @@ ByteVector APE::Tag::render() const
   ByteVector data;
   unsigned int itemCount = 0;
 
-  for(ItemListMap::ConstIterator it = d->itemListMap.begin(); it != d->itemListMap.end(); ++it) {
+  for(auto it = d->itemListMap.cbegin(); it != d->itemListMap.cend(); ++it) {
     data.append(it->second.render());
     itemCount++;
   }

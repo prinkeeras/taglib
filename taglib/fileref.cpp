@@ -27,15 +27,15 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
+#include "fileref.h"
+
 #include <cstring>
 
-#include <tfile.h>
-#include <tfilestream.h>
-#include <tstring.h>
-#include <tdebug.h>
-#include <trefcounter.h>
+#include "tdebug.h"
+#include "tfile.h"
+#include "tfilestream.h"
+#include "tstring.h"
 
-#include "fileref.h"
 #include "asffile.h"
 #include "mpegfile.h"
 #include "vorbisfile.h"
@@ -57,6 +57,14 @@
 
 using namespace TagLib;
 
+class FileRef::FileTypeResolver::FileTypeResolverPrivate
+{
+};
+
+class FileRef::StreamTypeResolver::StreamTypeResolverPrivate
+{
+};
+
 namespace
 {
   typedef List<const FileRef::FileTypeResolver *> ResolverList;
@@ -68,36 +76,33 @@ namespace
                           AudioProperties::ReadStyle audioPropertiesStyle)
   {
 #ifdef _WIN32
-    if(::strlen(fileName) == 0 && ::wcslen(fileName) == 0)
+    if(::wcslen(fileName) == 0)
       return 0;
 #else
     if(::strlen(fileName) == 0)
-      return 0;
+      return nullptr;
 #endif
-    ResolverList::ConstIterator it = fileTypeResolvers.begin();
-    for(; it != fileTypeResolvers.end(); ++it) {
+    for(auto it = fileTypeResolvers.cbegin(); it != fileTypeResolvers.cend(); ++it) {
       File *file = (*it)->createFile(fileName, readAudioProperties, audioPropertiesStyle);
       if(file)
         return file;
     }
 
-    return 0;
+    return nullptr;
   }
 
   File *detectByResolvers(IOStream* stream, bool readAudioProperties,
                           AudioProperties::ReadStyle audioPropertiesStyle)
   {
-    for(ResolverList::ConstIterator it = fileTypeResolvers.begin();
-        it != fileTypeResolvers.end(); ++it) {
-      if(const FileRef::StreamTypeResolver *streamResolver =
-           dynamic_cast<const FileRef::StreamTypeResolver*>(*it)) {
+    for(auto it = fileTypeResolvers.cbegin(); it != fileTypeResolvers.cend(); ++it) {
+      if(auto streamResolver = dynamic_cast<const FileRef::StreamTypeResolver*>(*it)) {
         if(File *file = streamResolver->createFileFromStream(
              stream, readAudioProperties, audioPropertiesStyle))
           return file;
       }
     }
 
-    return 0;
+    return nullptr;
   }
 
   // Detect the file type based on the file extension.
@@ -121,11 +126,11 @@ namespace
     // that a default file type resolver is created.
 
     if(ext.isEmpty())
-      return 0;
+      return nullptr;
 
     // .oga can be any audio in the Ogg container. So leave it to content-based detection.
 
-    File *file = 0;
+    File *file = nullptr;
 
     if(ext == "MP3")
       file = new MPEG::File(stream, ID3v2::FrameFactory::instance(), readAudioProperties, audioPropertiesStyle);
@@ -171,7 +176,7 @@ namespace
       delete file;
     }
 
-    return 0;
+    return nullptr;
   }
 
   // Detect the file type based on the actual content of the stream.
@@ -179,7 +184,7 @@ namespace
   File *detectByContent(IOStream *stream, bool readAudioProperties,
                         AudioProperties::ReadStyle audioPropertiesStyle)
   {
-    File *file = 0;
+    File *file = nullptr;
 
     if(MPEG::File::isSupported(stream))
       file = new MPEG::File(stream, ID3v2::FrameFactory::instance(), readAudioProperties, audioPropertiesStyle);
@@ -218,7 +223,7 @@ namespace
       delete file;
     }
 
-    return 0;
+    return nullptr;
   }
 
   // Internal function that supports FileRef::create().
@@ -244,7 +249,7 @@ namespace
       ext = s.substr(pos + 1).upper();
 
     if(ext.isEmpty())
-      return 0;
+      return nullptr;
 
     if(ext == "MP3")
       return new MPEG::File(fileName, ID3v2::FrameFactory::instance(), readAudioProperties, audioPropertiesStyle);
@@ -290,21 +295,25 @@ namespace
     if(ext == "XM")
       return new XM::File(fileName, readAudioProperties, audioPropertiesStyle);
 
-    return 0;
+    return nullptr;
   }
 }  // namespace
 
-class FileRef::FileRefPrivate : public RefCounter
+class FileRef::FileRefPrivate
 {
 public:
   FileRefPrivate() :
-    file(0),
-    stream(0) {}
+    file(nullptr),
+    stream(nullptr) {}
 
-  ~FileRefPrivate() {
+  ~FileRefPrivate()
+  {
     delete file;
     delete stream;
   }
+
+  FileRefPrivate(const FileRefPrivate &) = delete;
+  FileRefPrivate &operator=(const FileRefPrivate &) = delete;
 
   File     *file;
   IOStream *stream;
@@ -315,46 +324,38 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 FileRef::FileRef() :
-  d(new FileRefPrivate())
+  d(std::make_shared<FileRefPrivate>())
 {
 }
 
 FileRef::FileRef(FileName fileName, bool readAudioProperties,
                  AudioProperties::ReadStyle audioPropertiesStyle) :
-  d(new FileRefPrivate())
+  d(std::make_shared<FileRefPrivate>())
 {
   parse(fileName, readAudioProperties, audioPropertiesStyle);
 }
 
-FileRef::FileRef(IOStream* stream, bool readAudioProperties, AudioProperties::ReadStyle audioPropertiesStyle) :
-  d(new FileRefPrivate())
+FileRef::FileRef(IOStream *stream, bool readAudioProperties, AudioProperties::ReadStyle audioPropertiesStyle) :
+  d(std::make_shared<FileRefPrivate>())
 {
   parse(stream, readAudioProperties, audioPropertiesStyle);
 }
 
 FileRef::FileRef(File *file) :
-  d(new FileRefPrivate())
+  d(std::make_shared<FileRefPrivate>())
 {
   d->file = file;
 }
 
-FileRef::FileRef(const FileRef &ref) :
-  d(ref.d)
-{
-  d->ref();
-}
+FileRef::FileRef(const FileRef &ref) = default;
 
-FileRef::~FileRef()
-{
-  if(d->deref())
-    delete d;
-}
+FileRef::~FileRef() = default;
 
 Tag *FileRef::tag() const
 {
   if(isNull()) {
     debug("FileRef::tag() - Called without a valid file.");
-    return 0;
+    return nullptr;
   }
   return d->file->tag();
 }
@@ -363,7 +364,7 @@ AudioProperties *FileRef::audioProperties() const
 {
   if(isNull()) {
     debug("FileRef::audioProperties() - Called without a valid file.");
-    return 0;
+    return nullptr;
   }
   return d->file->audioProperties();
 }
@@ -490,7 +491,7 @@ void FileRef::parse(FileName fileName, bool readAudioProperties,
   // Stream have to be closed here if failed to resolve file types.
 
   delete d->stream;
-  d->stream = 0;
+  d->stream = nullptr;
 }
 
 void FileRef::parse(IOStream *stream, bool readAudioProperties,
@@ -518,3 +519,9 @@ void FileRef::parse(IOStream *stream, bool readAudioProperties,
 
   d->file = detectByContent(stream, readAudioProperties, audioPropertiesStyle);
 }
+
+FileRef::FileTypeResolver::FileTypeResolver() = default;
+FileRef::FileTypeResolver::~FileTypeResolver() = default;
+
+FileRef::StreamTypeResolver::StreamTypeResolver() = default;
+FileRef::StreamTypeResolver::~StreamTypeResolver() = default;

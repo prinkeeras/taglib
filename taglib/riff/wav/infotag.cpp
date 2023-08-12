@@ -23,10 +23,11 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include <tfile.h>
-
 #include "infotag.h"
+
+#include "tdebug.h"
+#include "tfile.h"
+
 #include "riffutils.h"
 
 using namespace TagLib;
@@ -44,17 +45,17 @@ public:
   FieldListMap fieldListMap;
 };
 
+class RIFF::Info::StringHandler::StringHandlerPrivate
+{
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 // StringHandler implementation
 ////////////////////////////////////////////////////////////////////////////////
 
-StringHandler::StringHandler()
-{
-}
+StringHandler::StringHandler() = default;
 
-StringHandler::~StringHandler()
-{
-}
+StringHandler::~StringHandler() = default;
 
 String RIFF::Info::StringHandler::parse(const ByteVector &data) const
 {
@@ -71,20 +72,17 @@ ByteVector RIFF::Info::StringHandler::render(const String &s) const
 ////////////////////////////////////////////////////////////////////////////////
 
 RIFF::Info::Tag::Tag(const ByteVector &data) :
-  d(new TagPrivate())
+  d(std::make_unique<TagPrivate>())
 {
   parse(data);
 }
 
 RIFF::Info::Tag::Tag() :
-  d(new TagPrivate())
+  d(std::make_unique<TagPrivate>())
 {
 }
 
-RIFF::Info::Tag::~Tag()
-{
-  delete d;
-}
+RIFF::Info::Tag::~Tag() = default;
 
 String RIFF::Info::Tag::title() const
 {
@@ -201,8 +199,7 @@ ByteVector RIFF::Info::Tag::render() const
 {
   ByteVector data("INFO");
 
-  FieldListMap::ConstIterator it = d->fieldListMap.begin();
-  for(; it != d->fieldListMap.end(); ++it) {
+  for(auto it = d->fieldListMap.cbegin(); it != d->fieldListMap.cend(); ++it) {
     ByteVector text = stringHandler->render(it->second);
     if(text.isEmpty())
       continue;

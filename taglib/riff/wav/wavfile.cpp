@@ -23,13 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tdebug.h>
-#include <tstringlist.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "wavfile.h"
+
+#include "tbytevector.h"
+#include "tdebug.h"
+#include "tstringlist.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
+
 #include "id3v2tag.h"
 #include "infotag.h"
 #include "tagunion.h"
@@ -45,7 +46,7 @@ class RIFF::WAV::File::FilePrivate
 {
 public:
   FilePrivate() :
-    properties(0),
+    properties(nullptr),
     hasID3v2(false),
     hasInfo(false) {}
 
@@ -53,6 +54,9 @@ public:
   {
     delete properties;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   Properties *properties;
   TagUnion tag;
@@ -79,7 +83,7 @@ bool RIFF::WAV::File::isSupported(IOStream *stream)
 
 RIFF::WAV::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   RIFF::File(file, LittleEndian),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -87,16 +91,13 @@ RIFF::WAV::File::File(FileName file, bool readProperties, Properties::ReadStyle)
 
 RIFF::WAV::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   RIFF::File(stream, LittleEndian),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-RIFF::WAV::File::~File()
-{
-  delete d;
-}
+RIFF::WAV::File::~File() = default;
 
 ID3v2::Tag *RIFF::WAV::File::tag() const
 {
@@ -148,13 +149,6 @@ RIFF::WAV::Properties *RIFF::WAV::File::audioProperties() const
 bool RIFF::WAV::File::save()
 {
   return RIFF::WAV::File::save(AllTags);
-}
-
-bool RIFF::WAV::File::save(TagTypes tags, bool stripOthers, int id3v2Version)
-{
-  return save(tags,
-              stripOthers ? StripOthers : StripNone,
-              id3v2Version == 3 ? ID3v2::v3 : ID3v2::v4);
 }
 
 bool RIFF::WAV::File::save(TagTypes tags, StripTags strip, ID3v2::Version version)

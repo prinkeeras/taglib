@@ -48,7 +48,7 @@ namespace TagLib {
       };
 
       CoverArt(Format format, const ByteVector &data);
-      ~CoverArt();
+      virtual ~CoverArt();
 
       CoverArt(const CoverArt &item);
 
@@ -70,7 +70,7 @@ namespace TagLib {
 
     private:
       class CoverArtPrivate;
-      CoverArtPrivate *d;
+      std::shared_ptr<CoverArtPrivate> d;
     };
 
     typedef List<CoverArt> CoverArtList;

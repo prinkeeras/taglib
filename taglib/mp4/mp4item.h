@@ -52,7 +52,7 @@ namespace TagLib {
        */
       void swap(Item &item);
 
-      ~Item();
+      virtual ~Item();
 
       Item(int value);
       Item(unsigned char value);
@@ -81,7 +81,7 @@ namespace TagLib {
 
     private:
       class ItemPrivate;
-      ItemPrivate *d;
+      std::shared_ptr<ItemPrivate> d;
     };
   }  // namespace MP4
 }  // namespace TagLib

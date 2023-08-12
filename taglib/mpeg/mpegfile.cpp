@@ -23,16 +23,17 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tagunion.h>
-#include <tagutils.h>
-#include <id3v2tag.h>
-#include <id3v2header.h>
-#include <id3v1tag.h>
-#include <apefooter.h>
-#include <apetag.h>
-#include <tdebug.h>
-
 #include "mpegfile.h"
+
+#include "tagunion.h"
+#include "tagutils.h"
+#include "id3v2tag.h"
+#include "id3v2header.h"
+#include "id3v1tag.h"
+#include "apefooter.h"
+#include "apetag.h"
+#include "tdebug.h"
+
 #include "mpegheader.h"
 #include "mpegutils.h"
 #include "tpropertymap.h"
@@ -54,22 +55,25 @@ public:
     APELocation(-1),
     APEOriginalSize(0),
     ID3v1Location(-1),
-    properties(0) {}
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
     delete properties;
   }
 
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
+
   const ID3v2::FrameFactory *ID3v2FrameFactory;
 
-  long ID3v2Location;
+  offset_t ID3v2Location;
   long ID3v2OriginalSize;
 
-  long APELocation;
+  offset_t APELocation;
   long APEOriginalSize;
 
-  long ID3v1Location;
+  offset_t ID3v1Location;
 
   TagUnion tag;
 
@@ -89,9 +93,9 @@ namespace
   public:
     AdapterFile(IOStream *stream) : File(stream) {}
 
-    Tag *tag() const { return 0; }
-    AudioProperties *audioProperties() const { return 0; }
-    bool save() { return false; }
+    Tag *tag() const override { return nullptr; }
+    AudioProperties *audioProperties() const override { return nullptr; }
+    bool save() override { return false; }
   };
 }  // namespace
 
@@ -105,13 +109,13 @@ bool MPEG::File::isSupported(IOStream *stream)
   // MPEG frame headers are really confusing with irrelevant binary data.
   // So we check if a frame header is really valid.
 
-  long headerOffset;
+  offset_t headerOffset;
   const ByteVector buffer = Utils::readHeader(stream, bufferSize(), true, &headerOffset);
 
   if(buffer.isEmpty())
       return false;
 
-  const long originalPosition = stream->tell();
+  const offset_t originalPosition = stream->tell();
   AdapterFile file(stream);
 
   for(unsigned int i = 0; i < buffer.size() - 1; ++i) {
@@ -134,7 +138,7 @@ bool MPEG::File::isSupported(IOStream *stream)
 
 MPEG::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -143,7 +147,7 @@ MPEG::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
 MPEG::File::File(FileName file, ID3v2::FrameFactory *frameFactory,
                  bool readProperties, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate(frameFactory))
+  d(std::make_unique<FilePrivate>(frameFactory))
 {
   if(isOpen())
     read(readProperties);
@@ -152,16 +156,13 @@ MPEG::File::File(FileName file, ID3v2::FrameFactory *frameFactory,
 MPEG::File::File(IOStream *stream, ID3v2::FrameFactory *frameFactory,
                  bool readProperties, Properties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate(frameFactory))
+  d(std::make_unique<FilePrivate>(frameFactory))
 {
   if(isOpen())
     read(readProperties);
 }
 
-MPEG::File::~File()
-{
-  delete d;
-}
+MPEG::File::~File() = default;
 
 TagLib::Tag *MPEG::File::tag() const
 {
@@ -196,31 +197,6 @@ MPEG::Properties *MPEG::File::audioProperties() const
 bool MPEG::File::save()
 {
   return save(AllTags);
-}
-
-bool MPEG::File::save(int tags)
-{
-  return save(tags, StripOthers);
-}
-
-bool MPEG::File::save(int tags, bool stripOthers)
-{
-  return save(tags, stripOthers ? StripOthers : StripNone, ID3v2::v4);
-}
-
-bool MPEG::File::save(int tags, bool stripOthers, int id3v2Version)
-{
-  return save(tags,
-              stripOthers ? StripOthers : StripNone,
-              id3v2Version == 3 ? ID3v2::v3 : ID3v2::v4);
-}
-
-bool MPEG::File::save(int tags, bool stripOthers, int id3v2Version, bool duplicateTags)
-{
-  return save(tags,
-              stripOthers ? StripOthers : StripNone,
-              id3v2Version == 3 ? ID3v2::v3 : ID3v2::v4,
-              duplicateTags ? Duplicate : DoNotDuplicate);
 }
 
 bool MPEG::File::save(int tags, StripTags strip, ID3v2::Version version, DuplicateTags duplicate)
@@ -348,11 +324,6 @@ APE::Tag *MPEG::File::APETag(bool create)
   return d->tag.access<APE::Tag>(APEIndex, create);
 }
 
-bool MPEG::File::strip(int tags)
-{
-  return strip(tags, true);
-}
-
 bool MPEG::File::strip(int tags, bool freeMemory)
 {
   if(readOnly()) {
@@ -373,7 +344,7 @@ bool MPEG::File::strip(int tags, bool freeMemory)
     d->ID3v2OriginalSize = 0;
 
     if(freeMemory)
-      d->tag.set(ID3v2Index, 0);
+      d->tag.set(ID3v2Index, nullptr);
   }
 
   if((tags & ID3v1) && d->ID3v1Location >= 0) {
@@ -382,7 +353,7 @@ bool MPEG::File::strip(int tags, bool freeMemory)
     d->ID3v1Location = -1;
 
     if(freeMemory)
-      d->tag.set(ID3v1Index, 0);
+      d->tag.set(ID3v1Index, nullptr);
   }
 
   if((tags & APE) && d->APELocation >= 0) {
@@ -395,18 +366,13 @@ bool MPEG::File::strip(int tags, bool freeMemory)
     d->APEOriginalSize = 0;
 
     if(freeMemory)
-      d->tag.set(APEIndex, 0);
+      d->tag.set(APEIndex, nullptr);
   }
 
   return true;
 }
 
-void MPEG::File::setID3v2FrameFactory(const ID3v2::FrameFactory *factory)
-{
-  d->ID3v2FrameFactory = factory;
-}
-
-long MPEG::File::nextFrameOffset(long position)
+offset_t MPEG::File::nextFrameOffset(offset_t position)
 {
   ByteVector frameSyncBytes(2, '\0');
 
@@ -430,12 +396,12 @@ long MPEG::File::nextFrameOffset(long position)
   }
 }
 
-long MPEG::File::previousFrameOffset(long position)
+offset_t MPEG::File::previousFrameOffset(offset_t position)
 {
   ByteVector frameSyncBytes(2, '\0');
 
   while(position > 0) {
-    const long bufferLength = std::min<long>(position, bufferSize());
+    const offset_t bufferLength = std::min<offset_t>(position, bufferSize());
     position -= bufferLength;
 
     seek(position);
@@ -455,9 +421,9 @@ long MPEG::File::previousFrameOffset(long position)
   return -1;
 }
 
-long MPEG::File::firstFrameOffset()
+offset_t MPEG::File::firstFrameOffset()
 {
-  long position = 0;
+  offset_t position = 0;
 
   if(hasID3v2Tag())
     position = d->ID3v2Location + ID3v2Tag()->header()->completeTagSize();
@@ -465,9 +431,9 @@ long MPEG::File::firstFrameOffset()
   return nextFrameOffset(position);
 }
 
-long MPEG::File::lastFrameOffset()
+offset_t MPEG::File::lastFrameOffset()
 {
-  long position;
+  offset_t position;
 
   if(hasAPETag())
     position = d->APELocation - 1;
@@ -535,7 +501,7 @@ void MPEG::File::read(bool readProperties)
   ID3v1Tag(true);
 }
 
-long MPEG::File::findID3v2()
+offset_t MPEG::File::findID3v2()
 {
   if(!isValid())
     return -1;

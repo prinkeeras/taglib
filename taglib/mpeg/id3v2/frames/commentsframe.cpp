@@ -23,12 +23,13 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevectorlist.h>
-#include <id3v2tag.h>
-#include <tdebug.h>
-#include <tstringlist.h>
-
 #include "commentsframe.h"
+
+#include "tbytevectorlist.h"
+#include "id3v2tag.h"
+#include "tdebug.h"
+#include "tstringlist.h"
+
 #include "tpropertymap.h"
 
 using namespace TagLib;
@@ -50,22 +51,19 @@ public:
 
 CommentsFrame::CommentsFrame(String::Type encoding) :
   Frame("COMM"),
-  d(new CommentsFramePrivate())
+  d(std::make_unique<CommentsFramePrivate>())
 {
   d->textEncoding = encoding;
 }
 
 CommentsFrame::CommentsFrame(const ByteVector &data) :
   Frame(data),
-  d(new CommentsFramePrivate())
+  d(std::make_unique<CommentsFramePrivate>())
 {
   setData(data);
 }
 
-CommentsFrame::~CommentsFrame()
-{
-  delete d;
-}
+CommentsFrame::~CommentsFrame() = default;
 
 String CommentsFrame::toString() const
 {
@@ -125,18 +123,16 @@ PropertyMap CommentsFrame::asProperties() const
 
 CommentsFrame *CommentsFrame::findByDescription(const ID3v2::Tag *tag, const String &d) // static
 {
-  ID3v2::FrameList comments = tag->frameList("COMM");
+  const ID3v2::FrameList comments = tag->frameList("COMM");
 
-  for(ID3v2::FrameList::ConstIterator it = comments.begin();
-      it != comments.end();
-      ++it)
+  for(auto it = comments.begin(); it != comments.end(); ++it)
   {
-    CommentsFrame *frame = dynamic_cast<CommentsFrame *>(*it);
+    auto frame = dynamic_cast<CommentsFrame *>(*it);
     if(frame && frame->description() == d)
       return frame;
   }
 
-  return 0;
+  return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -192,7 +188,7 @@ ByteVector CommentsFrame::renderFields() const
 
 CommentsFrame::CommentsFrame(const ByteVector &data, Header *h) :
   Frame(h),
-  d(new CommentsFramePrivate())
+  d(std::make_unique<CommentsFramePrivate>())
 {
   parseFields(fieldData(data));
 }

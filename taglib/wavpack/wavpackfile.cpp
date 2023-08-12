@@ -27,14 +27,15 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tstring.h>
-#include <tdebug.h>
-#include <tagunion.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "wavpackfile.h"
+
+#include "tbytevector.h"
+#include "tstring.h"
+#include "tdebug.h"
+#include "tagunion.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
+
 #include "id3v1tag.h"
 #include "id3v2header.h"
 #include "apetag.h"
@@ -54,17 +55,20 @@ public:
     APELocation(-1),
     APESize(0),
     ID3v1Location(-1),
-    properties(0) {}
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
     delete properties;
   }
 
-  long APELocation;
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
+
+  offset_t APELocation;
   long APESize;
 
-  long ID3v1Location;
+  offset_t ID3v1Location;
 
   TagUnion tag;
 
@@ -89,7 +93,7 @@ bool WavPack::File::isSupported(IOStream *stream)
 
 WavPack::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -97,16 +101,13 @@ WavPack::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
 
 WavPack::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-WavPack::File::~File()
-{
-  delete d;
-}
+WavPack::File::~File() = default;
 
 TagLib::Tag *WavPack::File::tag() const
 {
@@ -221,10 +222,10 @@ APE::Tag *WavPack::File::APETag(bool create)
 void WavPack::File::strip(int tags)
 {
   if(tags & ID3v1)
-    d->tag.set(WavID3v1Index, 0);
+    d->tag.set(WavID3v1Index, nullptr);
 
   if(tags & APE)
-    d->tag.set(WavAPEIndex, 0);
+    d->tag.set(WavAPEIndex, nullptr);
 
   if(!ID3v1Tag())
     APETag(true);
@@ -270,7 +271,7 @@ void WavPack::File::read(bool readProperties)
 
   if(readProperties) {
 
-    long streamLength;
+    offset_t streamLength;
 
     if(d->APELocation >= 0)
       streamLength = d->APELocation;

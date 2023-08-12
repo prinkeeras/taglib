@@ -27,12 +27,12 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tdebug.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "opusfile.h"
+
+#include "tstring.h"
+#include "tdebug.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
 
 using namespace TagLib;
 using namespace TagLib::Ogg;
@@ -41,14 +41,17 @@ class Opus::File::FilePrivate
 {
 public:
   FilePrivate() :
-    comment(0),
-    properties(0) {}
+    comment(nullptr),
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
     delete comment;
     delete properties;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   Ogg::XiphComment *comment;
   Properties *properties;
@@ -72,7 +75,7 @@ bool Ogg::Opus::File::isSupported(IOStream *stream)
 
 Opus::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   Ogg::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -80,16 +83,13 @@ Opus::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
 
 Opus::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   Ogg::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-Opus::File::~File()
-{
-  delete d;
-}
+Opus::File::~File() = default;
 
 Ogg::XiphComment *Opus::File::tag() const
 {

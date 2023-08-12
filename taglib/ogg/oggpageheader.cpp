@@ -23,13 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
+#include "oggpageheader.h"
+
 #include <bitset>
 
-#include <tstring.h>
-#include <tdebug.h>
-#include <taglib.h>
+#include "tstring.h"
+#include "tdebug.h"
+#include "taglib.h"
 
-#include "oggpageheader.h"
 #include "oggfile.h"
 
 using namespace TagLib;
@@ -66,17 +67,14 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-Ogg::PageHeader::PageHeader(Ogg::File *file, long pageOffset) :
-  d(new PageHeaderPrivate())
+Ogg::PageHeader::PageHeader(Ogg::File *file, offset_t pageOffset) :
+  d(std::make_unique<PageHeaderPrivate>())
 {
   if(file && pageOffset >= 0)
     read(file, pageOffset);
 }
 
-Ogg::PageHeader::~PageHeader()
-{
-  delete d;
-}
+Ogg::PageHeader::~PageHeader() = default;
 
 bool Ogg::PageHeader::isValid() const
 {
@@ -225,7 +223,7 @@ ByteVector Ogg::PageHeader::render() const
 // private members
 ////////////////////////////////////////////////////////////////////////////////
 
-void Ogg::PageHeader::read(Ogg::File *file, long pageOffset)
+void Ogg::PageHeader::read(Ogg::File *file, offset_t pageOffset)
 {
   file->seek(pageOffset);
 
@@ -295,7 +293,7 @@ ByteVector Ogg::PageHeader::lacingValues() const
 {
   ByteVector data;
 
-  for(List<int>::ConstIterator it = d->packetSizes.begin(); it != d->packetSizes.end(); ++it) {
+  for(auto it = d->packetSizes.cbegin(); it != d->packetSizes.cend(); ++it) {
 
     // The size of a packet in an Ogg page is indicated by a series of "lacing
     // values" where the sum of the values is the packet size in bytes.  Each of
@@ -304,7 +302,7 @@ ByteVector Ogg::PageHeader::lacingValues() const
 
     data.resize(data.size() + (*it / 255), '\xff');
 
-    if(it != --d->packetSizes.end() || d->lastPacketCompleted)
+    if(it != --d->packetSizes.cend() || d->lastPacketCompleted)
       data.append(static_cast<unsigned char>(*it % 255));
   }
 

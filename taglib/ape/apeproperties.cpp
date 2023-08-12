@@ -27,11 +27,11 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tdebug.h>
+#include "apeproperties.h"
+#include "tstring.h"
+#include "tdebug.h"
 #include <bitset>
 #include "id3v2tag.h"
-#include "apeproperties.h"
 #include "apefile.h"
 #include "apetag.h"
 #include "apefooter.h"
@@ -63,34 +63,14 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-APE::Properties::Properties(File *, ReadStyle style) :
+APE::Properties::Properties(File *file, offset_t streamLength, ReadStyle style) :
   AudioProperties(style),
-  d(new PropertiesPrivate())
-{
-  debug("APE::Properties::Properties() -- This constructor is no longer used.");
-}
-
-APE::Properties::Properties(File *file, long streamLength, ReadStyle style) :
-  AudioProperties(style),
-  d(new PropertiesPrivate())
+  d(std::make_unique<PropertiesPrivate>())
 {
   read(file, streamLength);
 }
 
-APE::Properties::~Properties()
-{
-  delete d;
-}
-
-int APE::Properties::length() const
-{
-  return lengthInSeconds();
-}
-
-int APE::Properties::lengthInSeconds() const
-{
-  return d->length / 1000;
-}
+APE::Properties::~Properties() = default;
 
 int APE::Properties::lengthInMilliseconds() const
 {
@@ -142,10 +122,10 @@ namespace
   }
 } // namespace
 
-void APE::Properties::read(File *file, long streamLength)
+void APE::Properties::read(File *file, offset_t streamLength)
 {
   // First, we assume that the file pointer is set at the first descriptor.
-  long offset = file->tell();
+  offset_t offset = file->tell();
   int version = headerVersion(file->readBlock(6));
 
   // Next, we look for the descriptor.

@@ -52,12 +52,15 @@ namespace TagLib {
        * create a page with no (and as such, invalid) data that must be set
        * later.
        */
-      PageHeader(File *file = 0, long pageOffset = -1);
+      PageHeader(File *file = nullptr, offset_t pageOffset = -1);
 
       /*!
        * Deletes this instance of the PageHeader.
        */
       virtual ~PageHeader();
+
+      PageHeader(const PageHeader &) = delete;
+      PageHeader &operator=(const PageHeader &) = delete;
 
       /*!
        * Returns true if the header parsed properly and is valid.
@@ -216,14 +219,11 @@ namespace TagLib {
       ByteVector render() const;
 
     private:
-      PageHeader(const PageHeader &);
-      PageHeader &operator=(const PageHeader &);
-
-      void read(Ogg::File *file, long pageOffset);
+      void read(Ogg::File *file, offset_t pageOffset);
       ByteVector lacingValues() const;
 
       class PageHeaderPrivate;
-      PageHeaderPrivate *d;
+      std::unique_ptr<PageHeaderPrivate> d;
     };
 
   }  // namespace Ogg

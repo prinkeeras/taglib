@@ -23,10 +23,10 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevectorlist.h>
-#include <tdebug.h>
-
 #include "apeitem.h"
+
+#include "tbytevectorlist.h"
+#include "tdebug.h"
 
 using namespace TagLib;
 using namespace APE;
@@ -50,26 +50,19 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 APE::Item::Item() :
-  d(new ItemPrivate())
+  d(std::make_unique<ItemPrivate>())
 {
-}
-
-APE::Item::Item(const String &key, const String &value) :
-  d(new ItemPrivate())
-{
-  d->key = key;
-  d->text.append(value);
 }
 
 APE::Item::Item(const String &key, const StringList &values) :
-  d(new ItemPrivate())
+  d(std::make_unique<ItemPrivate>())
 {
   d->key = key;
   d->text = values;
 }
 
 APE::Item::Item(const String &key, const ByteVector &value, bool binary) :
-  d(new ItemPrivate())
+  d(std::make_unique<ItemPrivate>())
 {
   d->key = key;
   if(binary) {
@@ -82,14 +75,11 @@ APE::Item::Item(const String &key, const ByteVector &value, bool binary) :
 }
 
 APE::Item::Item(const Item &item) :
-  d(new ItemPrivate(*item.d))
+  d(std::make_unique<ItemPrivate>(*item.d))
 {
 }
 
-APE::Item::~Item()
-{
-  delete d;
-}
+APE::Item::~Item() = default;
 
 Item &APE::Item::operator=(const Item &item)
 {
@@ -188,11 +178,11 @@ int APE::Item::size() const
   switch(d->type) {
     case Text:
       if(!d->text.isEmpty()) {
-        StringList::ConstIterator it = d->text.begin();
+        auto it = d->text.cbegin();
 
         result += it->data(String::UTF8).size();
         it++;
-        for(; it != d->text.end(); ++it)
+        for(; it != d->text.cend(); ++it)
           result += 1 + it->data(String::UTF8).size();
       }
       break;
@@ -275,11 +265,11 @@ ByteVector APE::Item::render() const
     return data;
 
   if(d->type == Text) {
-    StringList::ConstIterator it = d->text.begin();
+    auto it = d->text.cbegin();
 
     value.append(it->data(String::UTF8));
     it++;
-    for(; it != d->text.end(); ++it) {
+    for(; it != d->text.cend(); ++it) {
       value.append('\0');
       value.append(it->data(String::UTF8));
     }

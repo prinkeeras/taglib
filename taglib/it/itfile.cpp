@@ -24,8 +24,8 @@
  ***************************************************************************/
 
 
-#include "tstringlist.h"
 #include "itfile.h"
+#include "tstringlist.h"
 #include "tdebug.h"
 #include "modfileprivate.h"
 #include "tpropertymap.h"
@@ -48,7 +48,7 @@ public:
 IT::File::File(FileName file, bool readProperties,
                AudioProperties::ReadStyle propertiesStyle) :
   Mod::FileBase(file),
-  d(new FilePrivate(propertiesStyle))
+  d(std::make_unique<FilePrivate>(propertiesStyle))
 {
   if(isOpen())
     read(readProperties);
@@ -57,30 +57,17 @@ IT::File::File(FileName file, bool readProperties,
 IT::File::File(IOStream *stream, bool readProperties,
                AudioProperties::ReadStyle propertiesStyle) :
   Mod::FileBase(stream),
-  d(new FilePrivate(propertiesStyle))
+  d(std::make_unique<FilePrivate>(propertiesStyle))
 {
   if(isOpen())
     read(readProperties);
 }
 
-IT::File::~File()
-{
-  delete d;
-}
+IT::File::~File() = default;
 
 Mod::Tag *IT::File::tag() const
 {
   return &d->tag;
-}
-
-PropertyMap IT::File::properties() const
-{
-  return d->tag.properties();
-}
-
-PropertyMap IT::File::setProperties(const PropertyMap &properties)
-{
-  return d->tag.setProperties(properties);
 }
 
 IT::Properties *IT::File::audioProperties() const
@@ -162,7 +149,7 @@ bool IT::File::save()
   if(!readU16L(special))
     return false;
 
-  unsigned long fileSize = File::length();
+  auto fileSize = static_cast<unsigned long>(File::length());
   if(special & Properties::MessageAttached) {
     seek(54);
     if(!readU16L(messageLength) || !readU32L(messageOffset))

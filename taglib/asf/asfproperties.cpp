@@ -23,9 +23,9 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include <tstring.h>
 #include "asfproperties.h"
+#include "tdebug.h"
+#include "tstring.h"
 
 using namespace TagLib;
 
@@ -58,24 +58,11 @@ public:
 
 ASF::Properties::Properties() :
   AudioProperties(AudioProperties::Average),
-  d(new PropertiesPrivate())
+  d(std::make_unique<PropertiesPrivate>())
 {
 }
 
-ASF::Properties::~Properties()
-{
-  delete d;
-}
-
-int ASF::Properties::length() const
-{
-  return lengthInSeconds();
-}
-
-int ASF::Properties::lengthInSeconds() const
-{
-  return d->length / 1000;
-}
+ASF::Properties::~Properties() = default;
 
 int ASF::Properties::lengthInMilliseconds() const
 {
@@ -125,11 +112,6 @@ bool ASF::Properties::isEncrypted() const
 ////////////////////////////////////////////////////////////////////////////////
 // private members
 ////////////////////////////////////////////////////////////////////////////////
-
-void ASF::Properties::setLength(int /*length*/)
-{
-  debug("ASF::Properties::setLength() -- This method is deprecated. Do not use.");
-}
 
 void ASF::Properties::setLengthInMilliseconds(int value)
 {

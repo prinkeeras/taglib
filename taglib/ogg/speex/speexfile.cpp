@@ -27,12 +27,12 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tdebug.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "speexfile.h"
+
+#include "tstring.h"
+#include "tdebug.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
 
 using namespace TagLib;
 using namespace TagLib::Ogg;
@@ -41,14 +41,17 @@ class Speex::File::FilePrivate
 {
 public:
   FilePrivate() :
-    comment(0),
-    properties(0) {}
+    comment(nullptr),
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
     delete comment;
     delete properties;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   Ogg::XiphComment *comment;
   Properties *properties;
@@ -72,7 +75,7 @@ bool Ogg::Speex::File::isSupported(IOStream *stream)
 
 Speex::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   Ogg::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -80,16 +83,13 @@ Speex::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
 
 Speex::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   Ogg::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-Speex::File::~File()
-{
-  delete d;
-}
+Speex::File::~File() = default;
 
 Ogg::XiphComment *Speex::File::tag() const
 {

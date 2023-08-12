@@ -24,11 +24,11 @@
 
 #include <iostream>
 #include <iomanip>
-#include <stdio.h>
+#include <cstdio>
 
-#include <fileref.h>
-#include <tag.h>
-#include <tpropertymap.h>
+#include "fileref.h"
+#include "tag.h"
+#include "tpropertymap.h"
 
 using namespace std;
 
@@ -56,15 +56,15 @@ int main(int argc, char *argv[])
       TagLib::PropertyMap tags = f.file()->properties();
 
       unsigned int longest = 0;
-      for(TagLib::PropertyMap::ConstIterator i = tags.begin(); i != tags.end(); ++i) {
+      for(auto i = tags.cbegin(); i != tags.cend(); ++i) {
         if (i->first.size() > longest) {
           longest = i->first.size();
         }
       }
 
       cout << "-- TAG (properties) --" << endl;
-      for(TagLib::PropertyMap::ConstIterator i = tags.begin(); i != tags.end(); ++i) {
-        for(TagLib::StringList::ConstIterator j = i->second.begin(); j != i->second.end(); ++j) {
+      for(auto i = tags.cbegin(); i != tags.cend(); ++i) {
+        for(auto j = i->second.begin(); j != i->second.end(); ++j) {
           cout << left << std::setw(longest) << i->first << " - " << '"' << *j << '"' << endl;
         }
       }
@@ -75,8 +75,8 @@ int main(int argc, char *argv[])
 
       TagLib::AudioProperties *properties = f.audioProperties();
 
-      int seconds = properties->length() % 60;
-      int minutes = (properties->length() - seconds) / 60;
+      int seconds = properties->lengthInSeconds() % 60;
+      int minutes = (properties->lengthInSeconds() - seconds) / 60;
 
       cout << "-- AUDIO --" << endl;
       cout << "bitrate     - " << properties->bitrate() << endl;

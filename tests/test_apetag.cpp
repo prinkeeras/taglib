@@ -24,14 +24,14 @@
  ***************************************************************************/
 
 #include <string>
-#include <stdio.h>
-#include <tag.h>
-#include <tstringlist.h>
-#include <tbytevectorlist.h>
-#include <tpropertymap.h>
-#include <apefile.h>
-#include <apetag.h>
-#include <tdebug.h>
+#include <cstdio>
+#include "tag.h"
+#include "tstringlist.h"
+#include "tbytevectorlist.h"
+#include "tpropertymap.h"
+#include "apefile.h"
+#include "apetag.h"
+#include "tdebug.h"
 #include <cppunit/extensions/HelperMacros.h>
 #include "utils.h"
 
@@ -90,7 +90,7 @@ public:
   void testPropertyInterface2()
   {
     APE::Tag tag;
-    APE::Item item1 = APE::Item("TRACK", "17");
+    APE::Item item1 = APE::Item("TRACK", String("17"));
     tag.setItem("TRACK", item1);
 
     APE::Item item2 = APE::Item();
@@ -118,10 +118,10 @@ public:
     tag.removeUnsupportedProperties(properties.unsupportedData());
     CPPUNIT_ASSERT(!tag.itemListMap().contains("TESTBINARY"));
 
-    APE::Item item3 = APE::Item("TRACKNUMBER", "29");
+    APE::Item item3 = APE::Item("TRACKNUMBER", String("29"));
     tag.setItem("TRACKNUMBER", item3);
     properties = tag.properties();
-    CPPUNIT_ASSERT_EQUAL((unsigned int)2, properties["TRACKNUMBER"].size());
+    CPPUNIT_ASSERT_EQUAL(static_cast<unsigned int>(2), properties["TRACKNUMBER"].size());
     CPPUNIT_ASSERT_EQUAL(String("17"), properties["TRACKNUMBER"][0]);
     CPPUNIT_ASSERT_EQUAL(String("29"), properties["TRACKNUMBER"][1]);
 
@@ -138,21 +138,21 @@ public:
 
     APE::Tag tag;
     PropertyMap unsuccessful = tag.setProperties(properties);
-    CPPUNIT_ASSERT_EQUAL((unsigned int)3, unsuccessful.size());
+    CPPUNIT_ASSERT_EQUAL(static_cast<unsigned int>(3), unsuccessful.size());
     CPPUNIT_ASSERT(unsuccessful.contains("A"));
     CPPUNIT_ASSERT(unsuccessful.contains("MP+"));
     CPPUNIT_ASSERT(unsuccessful.contains(L"\x1234\x3456"));
 
-    CPPUNIT_ASSERT_EQUAL((unsigned int)2, tag.itemListMap().size());
+    CPPUNIT_ASSERT_EQUAL(static_cast<unsigned int>(2), tag.itemListMap().size());
     tag.addValue("VALID KEY", "Test Value 1");
     tag.addValue("INVALID KEY \x7f", "Test Value 2");
     tag.addValue(L"INVALID KEY \x1234\x3456", "Test Value 3");
-    CPPUNIT_ASSERT_EQUAL((unsigned int)3, tag.itemListMap().size());
+    CPPUNIT_ASSERT_EQUAL(static_cast<unsigned int>(3), tag.itemListMap().size());
   }
 
   void testTextBinary()
   {
-    APE::Item item = APE::Item("DUMMY", "Test Text");
+    APE::Item item = APE::Item("DUMMY", String("Test Text"));
     CPPUNIT_ASSERT_EQUAL(String("Test Text"), item.toString());
     CPPUNIT_ASSERT_EQUAL(ByteVector(), item.binaryData());
 
@@ -188,4 +188,3 @@ public:
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(TestAPETag);
-

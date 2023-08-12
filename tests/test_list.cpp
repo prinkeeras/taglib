@@ -23,7 +23,7 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tlist.h>
+#include "tlist.h"
 #include <cppunit/extensions/HelperMacros.h>
 
 using namespace std;
@@ -65,7 +65,7 @@ public:
     l1.append(4);
 
     List<int> l2 = l1;
-    List<int>::Iterator it = l2.find(3);
+    auto it = l2.find(3);
     *it = 33;
     CPPUNIT_ASSERT_EQUAL(3,  l1[2]);
     CPPUNIT_ASSERT_EQUAL(33, l2[2]);

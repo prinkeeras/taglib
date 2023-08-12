@@ -27,12 +27,13 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tdebug.h>
-
-#include <oggpageheader.h>
-
 #include "opusproperties.h"
+
+#include "tstring.h"
+#include "tdebug.h"
+
+#include "oggpageheader.h"
+
 #include "opusfile.h"
 
 using namespace TagLib;
@@ -61,25 +62,12 @@ public:
 
 Opus::Properties::Properties(File *file, ReadStyle style) :
   AudioProperties(style),
-  d(new PropertiesPrivate())
+  d(std::make_unique<PropertiesPrivate>())
 {
   read(file);
 }
 
-Opus::Properties::~Properties()
-{
-  delete d;
-}
-
-int Opus::Properties::length() const
-{
-  return lengthInSeconds();
-}
-
-int Ogg::Opus::Properties::lengthInSeconds() const
-{
-  return d->length / 1000;
-}
+Opus::Properties::~Properties() = default;
 
 int Ogg::Opus::Properties::lengthInMilliseconds() const
 {
@@ -163,7 +151,7 @@ void Opus::Properties::read(File *file)
 
       if(frameCount > 0) {
         const double length = frameCount * 1000.0 / 48000.0;
-        long fileLengthWithoutOverhead = file->length();
+        offset_t fileLengthWithoutOverhead = file->length();
         // Ignore the two mandatory header packets, see "3. Packet Organization"
         // in https://tools.ietf.org/html/rfc7845.html
         for (unsigned int i = 0; i < 2; ++i) {

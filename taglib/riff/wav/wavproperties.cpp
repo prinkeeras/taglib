@@ -23,9 +23,9 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include "wavfile.h"
 #include "wavproperties.h"
+#include "tdebug.h"
+#include "wavfile.h"
 
 using namespace TagLib;
 
@@ -65,41 +65,14 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-RIFF::WAV::Properties::Properties(const ByteVector &, ReadStyle style) :
-  AudioProperties(style),
-  d(new PropertiesPrivate())
-{
-  debug("RIFF::WAV::Properties::Properties() -- This constructor is no longer used.");
-}
-
-RIFF::WAV::Properties::Properties(const ByteVector &, unsigned int, ReadStyle style) :
-  AudioProperties(style),
-  d(new PropertiesPrivate())
-{
-  debug("RIFF::WAV::Properties::Properties() -- This constructor is no longer used.");
-}
-
 TagLib::RIFF::WAV::Properties::Properties(File *file, ReadStyle style) :
   AudioProperties(style),
-  d(new PropertiesPrivate())
+  d(std::make_unique<PropertiesPrivate>())
 {
   read(file);
 }
 
-RIFF::WAV::Properties::~Properties()
-{
-  delete d;
-}
-
-int RIFF::WAV::Properties::length() const
-{
-  return lengthInSeconds();
-}
-
-int RIFF::WAV::Properties::lengthInSeconds() const
-{
-  return d->length / 1000;
-}
+RIFF::WAV::Properties::~Properties() = default;
 
 int RIFF::WAV::Properties::lengthInMilliseconds() const
 {
@@ -124,11 +97,6 @@ int RIFF::WAV::Properties::channels() const
 int RIFF::WAV::Properties::bitsPerSample() const
 {
   return d->bitsPerSample;
-}
-
-int RIFF::WAV::Properties::sampleWidth() const
-{
-  return bitsPerSample();
 }
 
 unsigned int RIFF::WAV::Properties::sampleFrames() const

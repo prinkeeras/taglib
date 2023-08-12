@@ -33,14 +33,9 @@ class Footer::FooterPrivate
 {
 };
 
-Footer::Footer() :
-  d(0)
-{
-}
+Footer::Footer() = default;
 
-Footer::~Footer()
-{
-}
+Footer::~Footer() = default;
 
 unsigned int Footer::size()
 {

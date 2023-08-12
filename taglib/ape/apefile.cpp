@@ -31,16 +31,17 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tstring.h>
-#include <tdebug.h>
-#include <tagunion.h>
-#include <id3v1tag.h>
-#include <id3v2header.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "apefile.h"
+
+#include "tbytevector.h"
+#include "tstring.h"
+#include "tdebug.h"
+#include "tagunion.h"
+#include "id3v1tag.h"
+#include "id3v2header.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
+
 #include "apetag.h"
 #include "apefooter.h"
 
@@ -58,10 +59,10 @@ public:
     APELocation(-1),
     APESize(0),
     ID3v1Location(-1),
-    ID3v2Header(0),
+    ID3v2Header(nullptr),
     ID3v2Location(-1),
     ID3v2Size(0),
-    properties(0) {}
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
@@ -69,13 +70,16 @@ public:
     delete properties;
   }
 
-  long APELocation;
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
+
+  offset_t APELocation;
   long APESize;
 
-  long ID3v1Location;
+  offset_t ID3v1Location;
 
   ID3v2::Header *ID3v2Header;
-  long ID3v2Location;
+  offset_t ID3v2Location;
   long ID3v2Size;
 
   TagUnion tag;
@@ -101,7 +105,7 @@ bool APE::File::isSupported(IOStream *stream)
 
 APE::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -109,16 +113,13 @@ APE::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
 
 APE::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-APE::File::~File()
-{
-  delete d;
-}
+APE::File::~File() = default;
 
 TagLib::Tag *APE::File::tag() const
 {
@@ -233,10 +234,10 @@ APE::Tag *APE::File::APETag(bool create)
 void APE::File::strip(int tags)
 {
   if(tags & ID3v1)
-    d->tag.set(ApeID3v1Index, 0);
+    d->tag.set(ApeID3v1Index, nullptr);
 
   if(tags & APE)
-    d->tag.set(ApeAPEIndex, 0);
+    d->tag.set(ApeAPEIndex, nullptr);
 
   if(!ID3v1Tag())
     APETag(true);
@@ -292,7 +293,7 @@ void APE::File::read(bool readProperties)
 
   if(readProperties) {
 
-    long streamLength;
+    offset_t streamLength;
 
     if(d->APELocation >= 0)
       streamLength = d->APELocation;

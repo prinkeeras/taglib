@@ -23,12 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tdebug.h>
-#include <bitset>
-#include <math.h>
-
 #include "mpcproperties.h"
+
+#include "tdebug.h"
+#include "tstring.h"
+#include <array>
+#include <bitset>
+#include <cmath>
+
 #include "mpcfile.h"
 
 using namespace TagLib;
@@ -66,16 +68,9 @@ public:
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
-MPC::Properties::Properties(const ByteVector &data, long streamLength, ReadStyle style) :
+MPC::Properties::Properties(File *file, offset_t streamLength, ReadStyle style) :
   AudioProperties(style),
-  d(new PropertiesPrivate())
-{
-  readSV7(data, streamLength);
-}
-
-MPC::Properties::Properties(File *file, long streamLength, ReadStyle style) :
-  AudioProperties(style),
-  d(new PropertiesPrivate())
+  d(std::make_unique<PropertiesPrivate>())
 {
   ByteVector magic = file->readBlock(4);
   if(magic == "MPCK") {
@@ -88,20 +83,7 @@ MPC::Properties::Properties(File *file, long streamLength, ReadStyle style) :
   }
 }
 
-MPC::Properties::~Properties()
-{
-  delete d;
-}
-
-int MPC::Properties::length() const
-{
-  return lengthInSeconds();
-}
-
-int MPC::Properties::lengthInSeconds() const
-{
-  return d->length / 1000;
-}
+MPC::Properties::~Properties() = default;
 
 int MPC::Properties::lengthInMilliseconds() const
 {
@@ -200,10 +182,10 @@ namespace
 
   // This array looks weird, but the same as original MusePack code found at:
   // https://www.musepack.net/index.php?pg=src
-  const unsigned short sftable [8] = { 44100, 48000, 37800, 32000, 0, 0, 0, 0 };
+  constexpr std::array sftable { 44100, 48000, 37800, 32000, 0, 0, 0, 0 };
 }  // namespace
 
-void MPC::Properties::readSV8(File *file, long streamLength)
+void MPC::Properties::readSV8(File *file, offset_t streamLength)
 {
   bool readSH = false, readRG = false;
 
@@ -295,7 +277,7 @@ void MPC::Properties::readSV8(File *file, long streamLength)
   }
 }
 
-void MPC::Properties::readSV7(const ByteVector &data, long streamLength)
+void MPC::Properties::readSV7(const ByteVector &data, offset_t streamLength)
 {
   if(data.startsWith("MP+")) {
     if(data.size() < 4)

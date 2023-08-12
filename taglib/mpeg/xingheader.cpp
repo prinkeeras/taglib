@@ -23,11 +23,12 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tstring.h>
-#include <tdebug.h>
-
 #include "xingheader.h"
+
+#include "tbytevector.h"
+#include "tstring.h"
+#include "tdebug.h"
+
 #include "mpegfile.h"
 
 using namespace TagLib;
@@ -51,15 +52,12 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 MPEG::XingHeader::XingHeader(const ByteVector &data) :
-  d(new XingHeaderPrivate())
+  d(std::make_unique<XingHeaderPrivate>())
 {
   parse(data);
 }
 
-MPEG::XingHeader::~XingHeader()
-{
-  delete d;
-}
+MPEG::XingHeader::~XingHeader() = default;
 
 bool MPEG::XingHeader::isValid() const
 {
@@ -79,12 +77,6 @@ unsigned int MPEG::XingHeader::totalSize() const
 MPEG::XingHeader::HeaderType MPEG::XingHeader::type() const
 {
   return d->type;
-}
-
-int MPEG::XingHeader::xingHeaderOffset(TagLib::MPEG::Header::Version /*v*/,
-                                       TagLib::MPEG::Header::ChannelMode /*c*/)
-{
-  return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

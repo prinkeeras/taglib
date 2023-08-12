@@ -23,14 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
+#include "vorbisfile.h"
+
 #include <bitset>
 
-#include <tstring.h>
-#include <tdebug.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
-#include "vorbisfile.h"
+#include "tstring.h"
+#include "tdebug.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
 
 using namespace TagLib;
 
@@ -38,14 +38,17 @@ class Vorbis::File::FilePrivate
 {
 public:
   FilePrivate() :
-    comment(0),
-    properties(0) {}
+    comment(nullptr),
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
     delete comment;
     delete properties;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   Ogg::XiphComment *comment;
   Properties *properties;
@@ -77,7 +80,7 @@ bool Vorbis::File::isSupported(IOStream *stream)
 
 Vorbis::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   Ogg::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -85,16 +88,13 @@ Vorbis::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
 
 Vorbis::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   Ogg::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-Vorbis::File::~File()
-{
-  delete d;
-}
+Vorbis::File::~File() = default;
 
 Ogg::XiphComment *Vorbis::File::tag() const
 {

@@ -23,10 +23,10 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include <tmap.h>
-
 #include "relativevolumeframe.h"
+
+#include "tdebug.h"
+#include "tmap.h"
 
 using namespace TagLib;
 using namespace ID3v2;
@@ -53,21 +53,18 @@ public:
 
 RelativeVolumeFrame::RelativeVolumeFrame() :
   Frame("RVA2"),
-  d(new RelativeVolumeFramePrivate())
+  d(std::make_unique<RelativeVolumeFramePrivate>())
 {
 }
 
 RelativeVolumeFrame::RelativeVolumeFrame(const ByteVector &data) :
   Frame(data),
-  d(new RelativeVolumeFramePrivate())
+  d(std::make_unique<RelativeVolumeFramePrivate>())
 {
   setData(data);
 }
 
-RelativeVolumeFrame::~RelativeVolumeFrame()
-{
-  delete d;
-}
+RelativeVolumeFrame::~RelativeVolumeFrame() = default;
 
 String RelativeVolumeFrame::toString() const
 {
@@ -78,25 +75,10 @@ List<RelativeVolumeFrame::ChannelType> RelativeVolumeFrame::channels() const
 {
   List<ChannelType> l;
 
-  Map<ChannelType, ChannelData>::ConstIterator it = d->channels.begin();
-  for(; it != d->channels.end(); ++it)
+  for(auto it = d->channels.cbegin(); it != d->channels.cend(); ++it)
     l.append((*it).first);
 
   return l;
-}
-
-// deprecated
-
-RelativeVolumeFrame::ChannelType RelativeVolumeFrame::channelType() const
-{
-  return MasterVolume;
-}
-
-// deprecated
-
-void RelativeVolumeFrame::setChannelType(ChannelType)
-{
-
 }
 
 short RelativeVolumeFrame::volumeAdjustmentIndex(ChannelType type) const
@@ -104,19 +86,9 @@ short RelativeVolumeFrame::volumeAdjustmentIndex(ChannelType type) const
   return d->channels.contains(type) ? d->channels[type].volumeAdjustment : 0;
 }
 
-short RelativeVolumeFrame::volumeAdjustmentIndex() const
-{
-  return volumeAdjustmentIndex(MasterVolume);
-}
-
 void RelativeVolumeFrame::setVolumeAdjustmentIndex(short index, ChannelType type)
 {
   d->channels[type].volumeAdjustment = index;
-}
-
-void RelativeVolumeFrame::setVolumeAdjustmentIndex(short index)
-{
-  setVolumeAdjustmentIndex(index, MasterVolume);
 }
 
 float RelativeVolumeFrame::volumeAdjustment(ChannelType type) const
@@ -124,19 +96,9 @@ float RelativeVolumeFrame::volumeAdjustment(ChannelType type) const
   return d->channels.contains(type) ? static_cast<float>(d->channels[type].volumeAdjustment) / static_cast<float>(512) : 0;
 }
 
-float RelativeVolumeFrame::volumeAdjustment() const
-{
-  return volumeAdjustment(MasterVolume);
-}
-
 void RelativeVolumeFrame::setVolumeAdjustment(float adjustment, ChannelType type)
 {
   d->channels[type].volumeAdjustment = static_cast<short>(adjustment * static_cast<float>(512));
-}
-
-void RelativeVolumeFrame::setVolumeAdjustment(float adjustment)
-{
-  setVolumeAdjustment(adjustment, MasterVolume);
 }
 
 RelativeVolumeFrame::PeakVolume RelativeVolumeFrame::peakVolume(ChannelType type) const
@@ -144,19 +106,9 @@ RelativeVolumeFrame::PeakVolume RelativeVolumeFrame::peakVolume(ChannelType type
   return d->channels.contains(type) ? d->channels[type].peakVolume : PeakVolume();
 }
 
-RelativeVolumeFrame::PeakVolume RelativeVolumeFrame::peakVolume() const
-{
-  return peakVolume(MasterVolume);
-}
-
 void RelativeVolumeFrame::setPeakVolume(const PeakVolume &peak, ChannelType type)
 {
   d->channels[type].peakVolume = peak;
-}
-
-void RelativeVolumeFrame::setPeakVolume(const PeakVolume &peak)
-{
-  setPeakVolume(peak, MasterVolume);
 }
 
 String RelativeVolumeFrame::identification() const
@@ -182,7 +134,7 @@ void RelativeVolumeFrame::parseFields(const ByteVector &data)
 
   while(pos <= static_cast<int>(data.size()) - 4) {
 
-    ChannelType type = static_cast<ChannelType>(data[pos]);
+    auto type = static_cast<ChannelType>(data[pos]);
     pos += 1;
 
     ChannelData &channel = d->channels[type];
@@ -206,9 +158,7 @@ ByteVector RelativeVolumeFrame::renderFields() const
   data.append(d->identification.data(String::Latin1));
   data.append(textDelimiter(String::Latin1));
 
-  Map<ChannelType, ChannelData>::ConstIterator it = d->channels.begin();
-
-  for(; it != d->channels.end(); ++it) {
+  for(auto it = d->channels.cbegin(); it != d->channels.cend(); ++it) {
     ChannelType type = (*it).first;
     const ChannelData &channel = (*it).second;
 
@@ -227,7 +177,7 @@ ByteVector RelativeVolumeFrame::renderFields() const
 
 RelativeVolumeFrame::RelativeVolumeFrame(const ByteVector &data, Header *h) :
   Frame(h),
-  d(new RelativeVolumeFramePrivate())
+  d(std::make_unique<RelativeVolumeFramePrivate>())
 {
   parseFields(fieldData(data));
 }

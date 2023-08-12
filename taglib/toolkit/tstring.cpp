@@ -23,17 +23,16 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
+#include "tstring.h"
+
 #include <cerrno>
 #include <climits>
 
 #include <utf8-cpp/checked.h>
 
-#include <tdebug.h>
-#include <tstringlist.h>
-#include <trefcounter.h>
-#include <tutils.h>
-
-#include "tstring.h"
+#include "tdebug.h"
+#include "tstringlist.h"
+#include "tutils.h"
 
 namespace
 {
@@ -137,42 +136,33 @@ namespace
 
 namespace TagLib {
 
-class String::StringPrivate : public RefCounter
-{
-public:
-  StringPrivate()
-    {}
+  class String::StringPrivate
+  {
+  public:
+    /*!
+     * Stores string in UTF-16. The byte order depends on the CPU endian.
+     */
+    TagLib::wstring data;
 
-  /*!
-   * Stores string in UTF-16. The byte order depends on the CPU endian.
-   */
-  TagLib::wstring data;
-
-  /*!
-   * This is only used to hold the the most recent value of toCString().
-   */
-  std::string cstring;
+    /*!
+     * This is only used to hold the the most recent value of toCString().
+     */
+    std::string cstring;
 };
-
-String String::null;
 
 ////////////////////////////////////////////////////////////////////////////////
 // public members
 ////////////////////////////////////////////////////////////////////////////////
 
 String::String() :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
 }
 
-String::String(const String &s) :
-  d(s.d)
-{
-  d->ref();
-}
+String::String(const String &s) = default;
 
 String::String(const std::string &s, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(t == Latin1)
     copyFromLatin1(d->data, s.c_str(), s.length());
@@ -184,7 +174,7 @@ String::String(const std::string &s, Type t) :
 }
 
 String::String(const wstring &s, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(t == UTF16 || t == UTF16BE || t == UTF16LE) {
     // This looks ugly but needed for the compatibility with TagLib1.8.
@@ -202,7 +192,7 @@ String::String(const wstring &s, Type t) :
 }
 
 String::String(const wchar_t *s, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(t == UTF16 || t == UTF16BE || t == UTF16LE) {
     // This looks ugly but needed for the compatibility with TagLib1.8.
@@ -220,7 +210,7 @@ String::String(const wchar_t *s, Type t) :
 }
 
 String::String(const char *s, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(t == Latin1)
     copyFromLatin1(d->data, s, ::strlen(s));
@@ -232,7 +222,7 @@ String::String(const char *s, Type t) :
 }
 
 String::String(wchar_t c, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(t == UTF16 || t == UTF16BE || t == UTF16LE)
     copyFromUTF16(d->data, &c, 1, t);
@@ -242,7 +232,7 @@ String::String(wchar_t c, Type t) :
 }
 
 String::String(char c, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(t == Latin1)
     copyFromLatin1(d->data, &c, 1);
@@ -254,7 +244,7 @@ String::String(char c, Type t) :
 }
 
 String::String(const ByteVector &v, Type t) :
-  d(new StringPrivate())
+  d(std::make_shared<StringPrivate>())
 {
   if(v.isEmpty())
     return;
@@ -272,11 +262,7 @@ String::String(const ByteVector &v, Type t) :
 
 ////////////////////////////////////////////////////////////////////////////////
 
-String::~String()
-{
-  if(d->deref())
-    delete d;
-}
+String::~String() = default;
 
 std::string String::to8Bit(bool unicode) const
 {
@@ -311,6 +297,11 @@ String::ConstIterator String::begin() const
   return d->data.begin();
 }
 
+String::ConstIterator String::cbegin() const
+{
+  return d->data.cbegin();
+}
+
 String::Iterator String::end()
 {
   detach();
@@ -320,6 +311,11 @@ String::Iterator String::end()
 String::ConstIterator String::end() const
 {
   return d->data.end();
+}
+
+String::ConstIterator String::cend() const
+{
+  return d->data.cend();
 }
 
 int String::find(const String &s, int offset) const
@@ -405,11 +401,6 @@ bool String::isEmpty() const
   return d->data.empty();
 }
 
-bool String::isNull() const
-{
-  return d == null.d;
-}
-
 ByteVector String::data(Type t) const
 {
   switch(t)
@@ -429,7 +420,7 @@ ByteVector String::data(Type t) const
       ByteVector v(size() * 4, 0);
 
       try {
-        const ByteVector::Iterator dstEnd = utf8::utf16to8(begin(), end(), v.begin());
+        const auto dstEnd = utf8::utf16to8(begin(), end(), v.begin());
         v.resize(static_cast<unsigned int>(dstEnd - v.begin()));
       }
       catch(const utf8::exception &e) {
@@ -489,11 +480,6 @@ ByteVector String::data(Type t) const
   }
 }
 
-int String::toInt() const
-{
-  return toInt(0);
-}
-
 int String::toInt(bool *ok) const
 {
   const wchar_t *begin = d->data.c_str();
@@ -524,20 +510,12 @@ String String::stripWhiteSpace() const
 
 bool String::isLatin1() const
 {
-  for(ConstIterator it = begin(); it != end(); ++it) {
-    if(*it >= 256)
-      return false;
-  }
-  return true;
+  return std::none_of(this->begin(), this->end(), [](auto c) { return c >= 256; });
 }
 
 bool String::isAscii() const
 {
-  for(ConstIterator it = begin(); it != end(); ++it) {
-    if(*it >= 128)
-      return false;
-  }
-  return true;
+  return std::none_of(this->begin(), this->end(), [](auto c) { return c >= 128; });
 }
 
 String String::number(int n) // static
@@ -699,15 +677,10 @@ bool String::operator<(const String &s) const
 
 void String::detach()
 {
-  if(d->count() > 1)
+  if(d.use_count() > 1)
     String(d->data.c_str()).swap(*this);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// private members
-////////////////////////////////////////////////////////////////////////////////
-
-const String::Type String::WCharByteOrder = wcharByteOrder();
 }  // namespace TagLib
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -740,4 +713,3 @@ std::ostream &operator<<(std::ostream &s, const TagLib::String &str)
   s << str.to8Bit();
   return s;
 }
-

@@ -34,24 +34,17 @@ using namespace Mod;
 class Mod::Tag::TagPrivate
 {
 public:
-  TagPrivate()
-  {
-  }
-
   String title;
   String comment;
   String trackerName;
 };
 
 Mod::Tag::Tag() :
-  d(new TagPrivate())
+  d(std::make_unique<TagPrivate>())
 {
 }
 
-Mod::Tag::~Tag()
-{
-  delete d;
-}
+Mod::Tag::~Tag() = default;
 
 String Mod::Tag::title() const
 {
@@ -163,7 +156,7 @@ PropertyMap Mod::Tag::setProperties(const PropertyMap &origProps)
 
   // for each tag that has been set above, remove the first entry in the corresponding
   // value list. The others will be returned as unsupported by this format.
-  for(StringList::ConstIterator it = oneValueSet.begin(); it != oneValueSet.end(); ++it) {
+  for(auto it = oneValueSet.cbegin(); it != oneValueSet.cend(); ++it) {
     if(properties[*it].size() == 1)
       properties.erase(*it);
     else

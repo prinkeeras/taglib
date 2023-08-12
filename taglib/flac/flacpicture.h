@@ -88,7 +88,10 @@ namespace TagLib {
 
       Picture();
       Picture(const ByteVector &data);
-      ~Picture();
+      ~Picture() override;
+
+      Picture(const Picture &item) = delete;
+      Picture &operator=(const Picture &item) = delete;
 
       /*!
        * Returns the type of the image.
@@ -177,12 +180,12 @@ namespace TagLib {
       /*!
        * Returns the FLAC metadata block type.
        */
-      int code() const;
+      int code() const override;
 
       /*!
        * Render the content to the FLAC picture block format.
        */
-      ByteVector render() const;
+      ByteVector render() const override;
 
       /*!
        * Parse the picture data in the FLAC picture block format.
@@ -190,11 +193,8 @@ namespace TagLib {
       bool parse(const ByteVector &rawData);
 
     private:
-      Picture(const Picture &item);
-      Picture &operator=(const Picture &item);
-
       class PicturePrivate;
-      PicturePrivate *d;
+      std::unique_ptr<PicturePrivate> d;
     };
 
     typedef List<Picture> PictureList;

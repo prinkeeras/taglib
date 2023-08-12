@@ -23,10 +23,10 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <taglib.h>
-#include <tdebug.h>
-#include <tstring.h>
 #include "flacunknownmetadatablock.h"
+#include "taglib.h"
+#include "tdebug.h"
+#include "tstring.h"
 
 using namespace TagLib;
 
@@ -40,16 +40,13 @@ public:
 };
 
 FLAC::UnknownMetadataBlock::UnknownMetadataBlock(int code, const ByteVector &data) :
-  d(new UnknownMetadataBlockPrivate())
+  d(std::make_unique<UnknownMetadataBlockPrivate>())
 {
   d->code = code;
   d->data = data;
 }
 
-FLAC::UnknownMetadataBlock::~UnknownMetadataBlock()
-{
-  delete d;
-}
+FLAC::UnknownMetadataBlock::~UnknownMetadataBlock() = default;
 
 int FLAC::UnknownMetadataBlock::code() const
 {
@@ -75,4 +72,3 @@ ByteVector FLAC::UnknownMetadataBlock::render() const
 {
   return d->data;
 }
-

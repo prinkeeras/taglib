@@ -23,13 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
+#include "xmfile.h"
+
 #include "tstringlist.h"
 #include "tdebug.h"
-#include "xmfile.h"
 #include "modfileprivate.h"
 #include "tpropertymap.h"
 
-#include <string.h>
+#include <cstring>
 #include <algorithm>
 
 using namespace TagLib;
@@ -70,9 +71,7 @@ namespace
 class Reader
 {
 public:
-  virtual ~Reader()
-  {
-  }
+  virtual ~Reader() = default;
 
   /*!
    * Reads associated values from \a file, but never reads more
@@ -93,14 +92,14 @@ public:
   {
   }
 
-  unsigned int read(TagLib::File &file, unsigned int limit)
+  unsigned int read(TagLib::File &file, unsigned int limit) override
   {
     unsigned int count = std::min(m_size, limit);
     file.seek(count, TagLib::File::Current);
     return count;
   }
 
-  unsigned int size() const
+  unsigned int size() const override
   {
     return m_size;
   }
@@ -129,7 +128,7 @@ public:
   {
   }
 
-  unsigned int read(TagLib::File &file, unsigned int limit)
+  unsigned int read(TagLib::File &file, unsigned int limit) override
   {
     ByteVector data = file.readBlock(std::min(m_size, limit));
     unsigned int count = data.size();
@@ -142,7 +141,7 @@ public:
     return count;
   }
 
-  unsigned int size() const
+  unsigned int size() const override
   {
     return m_size;
   }
@@ -156,7 +155,7 @@ class ByteReader : public ValueReader<unsigned char>
 public:
   ByteReader(unsigned char &byte) : ValueReader<unsigned char>(byte) {}
 
-  unsigned int read(TagLib::File &file, unsigned int limit)
+  unsigned int read(TagLib::File &file, unsigned int limit) override
   {
     ByteVector data = file.readBlock(std::min(1U,limit));
     if(data.size() > 0) {
@@ -165,7 +164,7 @@ public:
     return data.size();
   }
 
-  unsigned int size() const
+  unsigned int size() const override
   {
     return 1;
   }
@@ -190,14 +189,14 @@ public:
   U16Reader(unsigned short &value, bool bigEndian)
   : NumberReader<unsigned short>(value, bigEndian) {}
 
-  unsigned int read(TagLib::File &file, unsigned int limit)
+  unsigned int read(TagLib::File &file, unsigned int limit) override
   {
     ByteVector data = file.readBlock(std::min(2U,limit));
     value = data.toUShort(bigEndian);
     return data.size();
   }
 
-  unsigned int size() const
+  unsigned int size() const override
   {
     return 2;
   }
@@ -211,14 +210,14 @@ public:
   {
   }
 
-  unsigned int read(TagLib::File &file, unsigned int limit)
+  unsigned int read(TagLib::File &file, unsigned int limit) override
   {
     ByteVector data = file.readBlock(std::min(4U,limit));
     value = data.toUInt(bigEndian);
     return data.size();
   }
 
-  unsigned int size() const
+  unsigned int size() const override
   {
     return 4;
   }
@@ -320,21 +319,21 @@ public:
     return u32(number, true);
   }
 
-  unsigned int size() const
+  unsigned int size() const override
   {
     unsigned int size = 0;
-    for(List<Reader*>::ConstIterator i = m_readers.begin();
+    for(auto i = m_readers.begin();
         i != m_readers.end(); ++ i) {
       size += (*i)->size();
     }
     return size;
   }
 
-  unsigned int read(TagLib::File &file, unsigned int limit)
+  unsigned int read(TagLib::File &file, unsigned int limit) override
   {
     unsigned int sumcount = 0;
-    for(List<Reader*>::ConstIterator i = m_readers.begin();
-        limit > 0 && i != m_readers.end(); ++ i) {
+    for(auto i = m_readers.cbegin();
+        limit > 0 && i != m_readers.cend(); ++ i) {
       unsigned int count = (*i)->read(file, limit);
       limit    -= count;
       sumcount += count;
@@ -363,7 +362,7 @@ public:
 XM::File::File(FileName file, bool readProperties,
                AudioProperties::ReadStyle propertiesStyle) :
   Mod::FileBase(file),
-  d(new FilePrivate(propertiesStyle))
+  d(std::make_unique<FilePrivate>(propertiesStyle))
 {
   if(isOpen())
     read(readProperties);
@@ -372,16 +371,13 @@ XM::File::File(FileName file, bool readProperties,
 XM::File::File(IOStream *stream, bool readProperties,
                AudioProperties::ReadStyle propertiesStyle) :
   Mod::FileBase(stream),
-  d(new FilePrivate(propertiesStyle))
+  d(std::make_unique<FilePrivate>(propertiesStyle))
 {
   if(isOpen())
     read(readProperties);
 }
 
-XM::File::~File()
-{
-  delete d;
-}
+XM::File::~File() = default;
 
 Mod::Tag *XM::File::tag() const
 {
@@ -566,7 +562,8 @@ void XM::File::read(bool)
     pattern.byte(packingType).u16L(rowCount).u16L(dataSize);
 
     unsigned int count = pattern.read(*this, patternHeaderLength - 4U);
-    READ_ASSERT(count == std::min(patternHeaderLength - 4U, (unsigned long)pattern.size()));
+    READ_ASSERT(count == std::min(patternHeaderLength - 4U,
+                                  static_cast<unsigned long>(pattern.size())));
 
     seek(patternHeaderLength - (4 + count) + dataSize, Current);
   }
@@ -589,9 +586,10 @@ void XM::File::read(bool)
 
     // 4 for instrumentHeaderSize
     unsigned int count = 4 + instrument.read(*this, instrumentHeaderSize - 4U);
-    READ_ASSERT(count == std::min(instrumentHeaderSize, (unsigned long)instrument.size() + 4));
+    READ_ASSERT(count == std::min(instrumentHeaderSize,
+                                  static_cast<unsigned long>(instrument.size() + 4)));
 
-    long offset = 0;
+    offset_t offset = 0;
     if(sampleCount > 0) {
       unsigned long sampleHeaderSize = 0;
       sumSampleCount += sampleCount;
@@ -624,7 +622,8 @@ void XM::File::read(bool)
               .string(sampleName, 22);
 
         unsigned int count = sample.read(*this, sampleHeaderSize);
-        READ_ASSERT(count == std::min(sampleHeaderSize, (unsigned long)sample.size()));
+        READ_ASSERT(count == std::min(sampleHeaderSize,
+                                      static_cast<unsigned long>(sample.size())));
         // skip unhandled header proportion:
         seek(sampleHeaderSize - count, Current);
 

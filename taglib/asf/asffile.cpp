@@ -23,13 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tdebug.h>
-#include <tbytevectorlist.h>
-#include <tpropertymap.h>
-#include <tstring.h>
-#include <tagutils.h>
-
 #include "asffile.h"
+
+#include "tdebug.h"
+#include "tbytevectorlist.h"
+#include "tpropertymap.h"
+#include "tstring.h"
+#include "tagutils.h"
+
 #include "asftag.h"
 #include "asfproperties.h"
 #include "asfutils.h"
@@ -52,13 +53,13 @@ public:
 
   FilePrivate():
     headerSize(0),
-    tag(0),
-    properties(0),
-    contentDescriptionObject(0),
-    extendedContentDescriptionObject(0),
-    headerExtensionObject(0),
-    metadataObject(0),
-    metadataLibraryObject(0)
+    tag(nullptr),
+    properties(nullptr),
+    contentDescriptionObject(nullptr),
+    extendedContentDescriptionObject(nullptr),
+    headerExtensionObject(nullptr),
+    metadataObject(nullptr),
+    metadataLibraryObject(nullptr)
   {
     objects.setAutoDelete(true);
   }
@@ -68,6 +69,9 @@ public:
     delete tag;
     delete properties;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   unsigned long long headerSize;
 
@@ -103,7 +107,7 @@ class ASF::File::FilePrivate::BaseObject
 {
 public:
   ByteVector data;
-  virtual ~BaseObject() {}
+  virtual ~BaseObject() = default;
   virtual ByteVector guid() const = 0;
   virtual void parse(ASF::File *file, unsigned int size);
   virtual ByteVector render(ASF::File *file);
@@ -114,56 +118,56 @@ class ASF::File::FilePrivate::UnknownObject : public ASF::File::FilePrivate::Bas
   ByteVector myGuid;
 public:
   UnknownObject(const ByteVector &guid);
-  ByteVector guid() const;
+  ByteVector guid() const override;
 };
 
 class ASF::File::FilePrivate::FilePropertiesObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
 };
 
 class ASF::File::FilePrivate::StreamPropertiesObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
 };
 
 class ASF::File::FilePrivate::ContentDescriptionObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
-  ByteVector render(ASF::File *file);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
+  ByteVector render(ASF::File *file) override;
 };
 
 class ASF::File::FilePrivate::ExtendedContentDescriptionObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
   ByteVectorList attributeData;
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
-  ByteVector render(ASF::File *file);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
+  ByteVector render(ASF::File *file) override;
 };
 
 class ASF::File::FilePrivate::MetadataObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
   ByteVectorList attributeData;
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
-  ByteVector render(ASF::File *file);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
+  ByteVector render(ASF::File *file) override;
 };
 
 class ASF::File::FilePrivate::MetadataLibraryObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
   ByteVectorList attributeData;
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
-  ByteVector render(ASF::File *file);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
+  ByteVector render(ASF::File *file) override;
 };
 
 class ASF::File::FilePrivate::HeaderExtensionObject : public ASF::File::FilePrivate::BaseObject
@@ -171,16 +175,16 @@ class ASF::File::FilePrivate::HeaderExtensionObject : public ASF::File::FilePriv
 public:
   List<ASF::File::FilePrivate::BaseObject *> objects;
   HeaderExtensionObject();
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
-  ByteVector render(ASF::File *file);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
+  ByteVector render(ASF::File *file) override;
 };
 
 class ASF::File::FilePrivate::CodecListObject : public ASF::File::FilePrivate::BaseObject
 {
 public:
-  ByteVector guid() const;
-  void parse(ASF::File *file, unsigned int size);
+  ByteVector guid() const override;
+  void parse(ASF::File *file, unsigned int size) override;
 
 private:
   enum CodecType
@@ -409,7 +413,7 @@ void ASF::File::FilePrivate::HeaderExtensionObject::parse(ASF::File *file, unsig
 ByteVector ASF::File::FilePrivate::HeaderExtensionObject::render(ASF::File *file)
 {
   data.clear();
-  for(List<BaseObject *>::ConstIterator it = objects.begin(); it != objects.end(); ++it) {
+  for(auto it = objects.cbegin(); it != objects.cend(); ++it) {
     data.append((*it)->render(file));
   }
   data = ByteVector("\x11\xD2\xD3\xAB\xBA\xA9\xcf\x11\x8E\xE6\x00\xC0\x0C\x20\x53\x65\x06\x00", 18) + ByteVector::fromUInt(data.size(), false) + data;
@@ -439,7 +443,7 @@ void ASF::File::FilePrivate::CodecListObject::parse(ASF::File *file, unsigned in
     if(pos >= data.size())
       break;
 
-    const CodecType type = static_cast<CodecType>(data.toUShort(pos, false));
+    const auto type = static_cast<CodecType>(data.toUShort(pos, false));
     pos += 2;
 
     int nameLength = data.toUShort(pos, false);
@@ -489,7 +493,7 @@ bool ASF::File::isSupported(IOStream *stream)
 
 ASF::File::File(FileName file, bool, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read();
@@ -497,16 +501,13 @@ ASF::File::File(FileName file, bool, Properties::ReadStyle) :
 
 ASF::File::File(IOStream *stream, bool, Properties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read();
 }
 
-ASF::File::~File()
-{
-  delete d;
-}
+ASF::File::~File() = default;
 
 ASF::Tag *ASF::File::tag() const
 {
@@ -572,7 +573,7 @@ bool ASF::File::save()
 
   const AttributeListMap allAttributes = d->tag->attributeListMap();
 
-  for(AttributeListMap::ConstIterator it = allAttributes.begin(); it != allAttributes.end(); ++it) {
+  for(auto it = allAttributes.begin(); it != allAttributes.end(); ++it) {
 
     const String &name = it->first;
     const AttributeList &attributes = it->second;
@@ -580,7 +581,7 @@ bool ASF::File::save()
     bool inExtendedContentDescriptionObject = false;
     bool inMetadataObject = false;
 
-    for(AttributeList::ConstIterator jt = attributes.begin(); jt != attributes.end(); ++jt) {
+    for(auto jt = attributes.begin(); jt != attributes.end(); ++jt) {
 
       const Attribute &attribute = *jt;
       const bool largeValue = (attribute.dataSize() > 65535);
@@ -601,7 +602,7 @@ bool ASF::File::save()
   }
 
   ByteVector data;
-  for(List<FilePrivate::BaseObject *>::ConstIterator it = d->objects.begin(); it != d->objects.end(); ++it) {
+  for(auto it = d->objects.cbegin(); it != d->objects.cend(); ++it) {
     data.append((*it)->render(this));
   }
 
@@ -648,8 +649,8 @@ void ASF::File::read()
   }
   seek(2, Current);
 
-  FilePrivate::FilePropertiesObject   *filePropertiesObject   = 0;
-  FilePrivate::StreamPropertiesObject *streamPropertiesObject = 0;
+  FilePrivate::FilePropertiesObject   *filePropertiesObject   = nullptr;
+  FilePrivate::StreamPropertiesObject *streamPropertiesObject = nullptr;
   for(int i = 0; i < numObjects; i++) {
     const ByteVector guid = readBlock(16);
     if(guid.size() != 16) {

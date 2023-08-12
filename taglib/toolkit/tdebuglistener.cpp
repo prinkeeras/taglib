@@ -39,7 +39,7 @@ namespace
   class DefaultListener : public DebugListener
   {
   public:
-    virtual void printMessage(const String &msg)
+    void printMessage(const String &msg) override
     {
 #ifdef _WIN32
 
@@ -56,7 +56,7 @@ namespace
 
       std::cerr << msg;
 
-#endif 
+#endif
     }
   };
 
@@ -65,15 +65,15 @@ namespace
 
 namespace TagLib
 {
+  class DebugListener::DebugListenerPrivate
+  {
+  };
+
   DebugListener *debugListener = &defaultListener;
 
-  DebugListener::DebugListener()
-  {
-  }
+  DebugListener::DebugListener() = default;
 
-  DebugListener::~DebugListener()
-  {
-  }
+  DebugListener::~DebugListener() = default;
 
   void setDebugListener(DebugListener *listener)
   {

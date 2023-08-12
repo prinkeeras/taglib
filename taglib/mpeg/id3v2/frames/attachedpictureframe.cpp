@@ -25,8 +25,8 @@
 
 #include "attachedpictureframe.h"
 
-#include <tstringlist.h>
-#include <tdebug.h>
+#include "tstringlist.h"
+#include "tdebug.h"
 
 using namespace TagLib;
 using namespace ID3v2;
@@ -50,21 +50,18 @@ public:
 
 AttachedPictureFrame::AttachedPictureFrame() :
   Frame("APIC"),
-  d(new AttachedPictureFramePrivate())
+  d(std::make_unique<AttachedPictureFramePrivate>())
 {
 }
 
 AttachedPictureFrame::AttachedPictureFrame(const ByteVector &data) :
   Frame(data),
-  d(new AttachedPictureFramePrivate())
+  d(std::make_unique<AttachedPictureFramePrivate>())
 {
   setData(data);
 }
 
-AttachedPictureFrame::~AttachedPictureFrame()
-{
-  delete d;
-}
+AttachedPictureFrame::~AttachedPictureFrame() = default;
 
 String AttachedPictureFrame::toString() const
 {
@@ -173,7 +170,7 @@ ByteVector AttachedPictureFrame::renderFields() const
 
 AttachedPictureFrame::AttachedPictureFrame(const ByteVector &data, Header *h) :
   Frame(h),
-  d(new AttachedPictureFramePrivate())
+  d(std::make_unique<AttachedPictureFramePrivate>())
 {
   parseFields(fieldData(data));
 }
@@ -219,7 +216,7 @@ AttachedPictureFrameV22::AttachedPictureFrameV22(const ByteVector &data, Header 
   parseFields(fieldData(data));
 
   // now set the v2.4 header
-  Frame::Header *newHeader = new Frame::Header("APIC");
+  auto newHeader = new Frame::Header("APIC");
   newHeader->setFrameSize(h->frameSize());
   setHeader(newHeader, true);
 }

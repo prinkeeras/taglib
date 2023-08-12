@@ -23,9 +23,9 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <taglib.h>
-#include <tdebug.h>
 #include "flacpicture.h"
+#include "taglib.h"
+#include "tdebug.h"
 
 using namespace TagLib;
 
@@ -51,20 +51,17 @@ public:
 };
 
 FLAC::Picture::Picture() :
-  d(new PicturePrivate())
+  d(std::make_unique<PicturePrivate>())
 {
 }
 
 FLAC::Picture::Picture(const ByteVector &data) :
-  d(new PicturePrivate())
+  d(std::make_unique<PicturePrivate>())
 {
   parse(data);
 }
 
-FLAC::Picture::~Picture()
-{
-  delete d;
-}
+FLAC::Picture::~Picture() = default;
 
 int FLAC::Picture::code() const
 {
@@ -214,4 +211,3 @@ void FLAC::Picture::setData(const ByteVector &data)
 {
   d->data = data;
 }
-

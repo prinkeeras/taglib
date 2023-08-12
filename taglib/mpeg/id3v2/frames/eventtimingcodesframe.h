@@ -131,12 +131,15 @@ namespace TagLib {
       /*!
        * Destroys this EventTimingCodesFrame instance.
        */
-      virtual ~EventTimingCodesFrame();
+      ~EventTimingCodesFrame() override;
+
+      EventTimingCodesFrame(const EventTimingCodesFrame &) = delete;
+      EventTimingCodesFrame &operator=(const EventTimingCodesFrame &) = delete;
 
       /*!
        * Returns a null string.
        */
-      virtual String toString() const;
+      String toString() const override;
 
       /*!
        * Returns the timestamp format.
@@ -165,19 +168,17 @@ namespace TagLib {
     protected:
       // Reimplementations.
 
-      virtual void parseFields(const ByteVector &data);
-      virtual ByteVector renderFields() const;
+      void parseFields(const ByteVector &data) override;
+      ByteVector renderFields() const override;
 
     private:
       /*!
        * The constructor used by the FrameFactory.
        */
       EventTimingCodesFrame(const ByteVector &data, Header *h);
-      EventTimingCodesFrame(const EventTimingCodesFrame &);
-      EventTimingCodesFrame &operator=(const EventTimingCodesFrame &);
 
       class EventTimingCodesFramePrivate;
-      EventTimingCodesFramePrivate *d;
+      std::unique_ptr<EventTimingCodesFramePrivate> d;
     };
 
   }  // namespace ID3v2

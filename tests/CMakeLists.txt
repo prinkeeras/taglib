@@ -1,5 +1,3 @@
-set(CMAKE_CXX_STANDARD 11)
-
 INCLUDE_DIRECTORIES(
   ${CMAKE_CURRENT_SOURCE_DIR}/../taglib
   ${CMAKE_CURRENT_SOURCE_DIR}/../taglib/toolkit
@@ -68,6 +66,7 @@ SET(test_runner_SRCS
   test_mpc.cpp
   test_opus.cpp
   test_speex.cpp
+  test_sizes.cpp
 )
 
 INCLUDE_DIRECTORIES(${CPPUNIT_INCLUDE_DIR})

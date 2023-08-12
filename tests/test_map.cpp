@@ -23,8 +23,8 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tstring.h>
-#include <tmap.h>
+#include "tstring.h"
+#include "tmap.h"
 #include <cppunit/extensions/HelperMacros.h>
 
 using namespace std;
@@ -61,7 +61,7 @@ public:
     m1.insert("carol", 11);
 
     Map<String, int> m2 = m1;
-    Map<String, int>::Iterator it = m2.find("bob");
+    auto it = m2.find("bob");
     (*it).second = 99;
     CPPUNIT_ASSERT_EQUAL(9,  m1["bob"]);
     CPPUNIT_ASSERT_EQUAL(99, m2["bob"]);

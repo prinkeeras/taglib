@@ -37,12 +37,15 @@ namespace TagLib {
     {
     public:
       UnknownMetadataBlock(int blockType, const ByteVector &data);
-      ~UnknownMetadataBlock();
+      ~UnknownMetadataBlock() override;
+
+      UnknownMetadataBlock(const UnknownMetadataBlock &item) = delete;
+      UnknownMetadataBlock &operator=(const UnknownMetadataBlock &item) = delete;
 
       /*!
        * Returns the FLAC metadata block type.
        */
-      int code() const;
+      int code() const override;
 
       /*!
        * Sets the FLAC metadata block type.
@@ -62,14 +65,11 @@ namespace TagLib {
       /*!
        * Render the content of the block.
        */
-      ByteVector render() const;
+      ByteVector render() const override;
 
     private:
-      UnknownMetadataBlock(const MetadataBlock &item);
-      UnknownMetadataBlock &operator=(const MetadataBlock &item);
-
       class UnknownMetadataBlockPrivate;
-      UnknownMetadataBlockPrivate *d;
+      std::unique_ptr<UnknownMetadataBlockPrivate> d;
     };
   }  // namespace FLAC
 }  // namespace TagLib

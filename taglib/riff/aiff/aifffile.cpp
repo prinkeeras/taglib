@@ -23,14 +23,14 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tdebug.h>
-#include <id3v2tag.h>
-#include <tstringlist.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "aifffile.h"
+
+#include "tbytevector.h"
+#include "tdebug.h"
+#include "id3v2tag.h"
+#include "tstringlist.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
 
 using namespace TagLib;
 
@@ -38,8 +38,8 @@ class RIFF::AIFF::File::FilePrivate
 {
 public:
   FilePrivate() :
-    properties(0),
-    tag(0),
+    properties(nullptr),
+    tag(nullptr),
     hasID3v2(false) {}
 
   ~FilePrivate()
@@ -47,6 +47,9 @@ public:
     delete properties;
     delete tag;
   }
+
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
 
   Properties *properties;
   ID3v2::Tag *tag;
@@ -72,7 +75,7 @@ bool RIFF::AIFF::File::isSupported(IOStream *stream)
 
 RIFF::AIFF::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   RIFF::File(file, BigEndian),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -80,16 +83,13 @@ RIFF::AIFF::File::File(FileName file, bool readProperties, Properties::ReadStyle
 
 RIFF::AIFF::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   RIFF::File(stream, BigEndian),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
 }
 
-RIFF::AIFF::File::~File()
-{
-  delete d;
-}
+RIFF::AIFF::File::~File() = default;
 
 ID3v2::Tag *RIFF::AIFF::File::tag() const
 {

@@ -27,15 +27,16 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tstring.h>
-#include <tdebug.h>
-#include <tagunion.h>
-#include <tstringlist.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
 #include "trueaudiofile.h"
+
+#include "tbytevector.h"
+#include "tstring.h"
+#include "tdebug.h"
+#include "tagunion.h"
+#include "tstringlist.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
+
 #include "id3v1tag.h"
 #include "id3v2tag.h"
 #include "id3v2header.h"
@@ -55,18 +56,21 @@ public:
     ID3v2Location(-1),
     ID3v2OriginalSize(0),
     ID3v1Location(-1),
-    properties(0) {}
+    properties(nullptr) {}
 
   ~FilePrivate()
   {
     delete properties;
   }
 
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
+
   const ID3v2::FrameFactory *ID3v2FrameFactory;
-  long ID3v2Location;
+  offset_t ID3v2Location;
   long ID3v2OriginalSize;
 
-  long ID3v1Location;
+  offset_t ID3v1Location;
 
   TagUnion tag;
 
@@ -91,7 +95,7 @@ bool TrueAudio::File::isSupported(IOStream *stream)
 
 TrueAudio::File::File(FileName file, bool readProperties, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -100,7 +104,7 @@ TrueAudio::File::File(FileName file, bool readProperties, Properties::ReadStyle)
 TrueAudio::File::File(FileName file, ID3v2::FrameFactory *frameFactory,
                       bool readProperties, Properties::ReadStyle) :
   TagLib::File(file),
-  d(new FilePrivate(frameFactory))
+  d(std::make_unique<FilePrivate>(frameFactory))
 {
   if(isOpen())
     read(readProperties);
@@ -108,7 +112,7 @@ TrueAudio::File::File(FileName file, ID3v2::FrameFactory *frameFactory,
 
 TrueAudio::File::File(IOStream *stream, bool readProperties, Properties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties);
@@ -117,16 +121,13 @@ TrueAudio::File::File(IOStream *stream, bool readProperties, Properties::ReadSty
 TrueAudio::File::File(IOStream *stream, ID3v2::FrameFactory *frameFactory,
                       bool readProperties, Properties::ReadStyle) :
   TagLib::File(stream),
-  d(new FilePrivate(frameFactory))
+  d(std::make_unique<FilePrivate>(frameFactory))
 {
   if(isOpen())
     read(readProperties);
 }
 
-TrueAudio::File::~File()
-{
-  delete d;
-}
+TrueAudio::File::~File() = default;
 
 TagLib::Tag *TrueAudio::File::tag() const
 {
@@ -154,11 +155,6 @@ PropertyMap TrueAudio::File::setProperties(const PropertyMap &properties)
 TrueAudio::Properties *TrueAudio::File::audioProperties() const
 {
   return d->properties;
-}
-
-void TrueAudio::File::setID3v2FrameFactory(const ID3v2::FrameFactory *factory)
-{
-  d->ID3v2FrameFactory = factory;
 }
 
 bool TrueAudio::File::save()
@@ -242,10 +238,10 @@ ID3v2::Tag *TrueAudio::File::ID3v2Tag(bool create)
 void TrueAudio::File::strip(int tags)
 {
   if(tags & ID3v1)
-    d->tag.set(TrueAudioID3v1Index, 0);
+    d->tag.set(TrueAudioID3v1Index, nullptr);
 
   if(tags & ID3v2)
-    d->tag.set(TrueAudioID3v2Index, 0);
+    d->tag.set(TrueAudioID3v2Index, nullptr);
 
   if(!ID3v1Tag())
     ID3v2Tag(true);
@@ -290,7 +286,7 @@ void TrueAudio::File::read(bool readProperties)
 
   if(readProperties) {
 
-    long streamLength;
+    offset_t streamLength;
 
     if(d->ID3v1Location >= 0)
       streamLength = d->ID3v1Location;

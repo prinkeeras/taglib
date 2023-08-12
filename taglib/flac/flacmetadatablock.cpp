@@ -23,25 +23,16 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <taglib.h>
-#include <tdebug.h>
 #include "flacmetadatablock.h"
+#include "taglib.h"
+#include "tdebug.h"
 
 using namespace TagLib;
 
 class FLAC::MetadataBlock::MetadataBlockPrivate
 {
-public:
-  MetadataBlockPrivate() {}
-
 };
 
-FLAC::MetadataBlock::MetadataBlock()
-  : d(0)
-{
-}
+FLAC::MetadataBlock::MetadataBlock() = default;
 
-FLAC::MetadataBlock::~MetadataBlock()
-{
-}
-
+FLAC::MetadataBlock::~MetadataBlock() = default;

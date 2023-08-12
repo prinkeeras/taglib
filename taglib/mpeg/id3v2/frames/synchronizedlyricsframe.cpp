@@ -24,10 +24,10 @@
  ***************************************************************************/
 
 #include "synchronizedlyricsframe.h"
-#include <tbytevectorlist.h>
-#include <id3v2tag.h>
-#include <tdebug.h>
-#include <tpropertymap.h>
+#include "tbytevectorlist.h"
+#include "id3v2tag.h"
+#include "tdebug.h"
+#include "tpropertymap.h"
 
 using namespace TagLib;
 using namespace ID3v2;
@@ -53,22 +53,19 @@ public:
 
 SynchronizedLyricsFrame::SynchronizedLyricsFrame(String::Type encoding) :
   Frame("SYLT"),
-  d(new SynchronizedLyricsFramePrivate())
+  d(std::make_unique<SynchronizedLyricsFramePrivate>())
 {
   d->textEncoding = encoding;
 }
 
 SynchronizedLyricsFrame::SynchronizedLyricsFrame(const ByteVector &data) :
   Frame(data),
-  d(new SynchronizedLyricsFramePrivate())
+  d(std::make_unique<SynchronizedLyricsFramePrivate>())
 {
   setData(data);
 }
 
-SynchronizedLyricsFrame::~SynchronizedLyricsFrame()
-{
-  delete d;
-}
+SynchronizedLyricsFrame::~SynchronizedLyricsFrame() = default;
 
 String SynchronizedLyricsFrame::toString() const
 {
@@ -206,8 +203,8 @@ ByteVector SynchronizedLyricsFrame::renderFields() const
   String::Type encoding = d->textEncoding;
 
   encoding = checkTextEncoding(d->description, encoding);
-  for(SynchedTextList::ConstIterator it = d->synchedText.begin();
-      it != d->synchedText.end();
+  for(auto it = d->synchedText.cbegin();
+      it != d->synchedText.cend();
       ++it) {
     encoding = checkTextEncoding(it->text, encoding);
   }
@@ -218,9 +215,7 @@ ByteVector SynchronizedLyricsFrame::renderFields() const
   v.append(static_cast<char>(d->type));
   v.append(d->description.data(encoding));
   v.append(textDelimiter(encoding));
-  for(SynchedTextList::ConstIterator it = d->synchedText.begin();
-      it != d->synchedText.end();
-      ++it) {
+  for(auto it = d->synchedText.cbegin(); it != d->synchedText.cend(); ++it) {
     const SynchedText &entry = *it;
     v.append(entry.text.data(encoding));
     v.append(textDelimiter(encoding));
@@ -236,7 +231,7 @@ ByteVector SynchronizedLyricsFrame::renderFields() const
 
 SynchronizedLyricsFrame::SynchronizedLyricsFrame(const ByteVector &data, Header *h) :
   Frame(h),
-  d(new SynchronizedLyricsFramePrivate())
+  d(std::make_unique<SynchronizedLyricsFramePrivate>())
 {
   parseFields(fieldData(data));
 }

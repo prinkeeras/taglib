@@ -24,11 +24,11 @@
  ***************************************************************************/
 
 #include <string>
-#include <stdio.h>
-#include <id3v1tag.h>
-#include <id3v2tag.h>
-#include <tpropertymap.h>
-#include <trueaudiofile.h>
+#include <cstdio>
+#include "id3v1tag.h"
+#include "id3v2tag.h"
+#include "tpropertymap.h"
+#include "trueaudiofile.h"
 #include <cppunit/extensions/HelperMacros.h>
 #include "utils.h"
 

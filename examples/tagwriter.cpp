@@ -24,18 +24,18 @@
 
 #include <iostream>
 #include <iomanip>
-#include <string.h>
+#include <cstring>
 
-#include <stdio.h>
+#include <cstdio>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <stdlib.h>
+#include <cstdlib>
 
-#include <tlist.h>
-#include <fileref.h>
-#include <tfile.h>
-#include <tag.h>
-#include <tpropertymap.h>
+#include "tlist.h"
+#include "fileref.h"
+#include "tfile.h"
+#include "tag.h"
+#include "tpropertymap.h"
 
 using namespace std;
 
@@ -79,14 +79,14 @@ void checkForRejectedProperties(const TagLib::PropertyMap &tags)
 { // stolen from tagreader.cpp
   if(tags.size() > 0) {
     unsigned int longest = 0;
-    for(TagLib::PropertyMap::ConstIterator i = tags.begin(); i != tags.end(); ++i) {
+    for(auto i = tags.begin(); i != tags.end(); ++i) {
       if(i->first.size() > longest) {
         longest = i->first.size();
       }
     }
     cout << "-- rejected TAGs (properties) --" << endl;
-    for(TagLib::PropertyMap::ConstIterator i = tags.begin(); i != tags.end(); ++i) {
-      for(TagLib::StringList::ConstIterator j = i->second.begin(); j != i->second.end(); ++j) {
+    for(auto i = tags.begin(); i != tags.end(); ++i) {
+      for(auto j = i->second.begin(); j != i->second.end(); ++j) {
         cout << left << std::setw(longest) << i->first << " - " << '"' << *j << '"' << endl;
       }
     }
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
       TagLib::String value = argv[i + 1];
 
       TagLib::List<TagLib::FileRef>::ConstIterator it;
-      for(it = fileList.begin(); it != fileList.end(); ++it) {
+      for(it = fileList.cbegin(); it != fileList.cend(); ++it) {
 
         TagLib::Tag *t = (*it).tag();
 
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
   }
 
   TagLib::List<TagLib::FileRef>::ConstIterator it;
-  for(it = fileList.begin(); it != fileList.end(); ++it)
+  for(it = fileList.cbegin(); it != fileList.cend(); ++it)
     (*it).file()->save();
 
   return 0;

@@ -20,25 +20,26 @@
  ***************************************************************************/
 
 #ifdef HAVE_CONFIG_H
-# include <config.h>
+# include  "config.h"
 #endif
 
-#include <stdlib.h>
-#include <fileref.h>
-#include <tfile.h>
-#include <asffile.h>
-#include <vorbisfile.h>
-#include <mpegfile.h>
-#include <flacfile.h>
-#include <oggflacfile.h>
-#include <mpcfile.h>
-#include <wavpackfile.h>
-#include <speexfile.h>
-#include <trueaudiofile.h>
-#include <mp4file.h>
-#include <tag.h>
-#include <string.h>
-#include <id3v2framefactory.h>
+#include <cstdlib>
+#include "fileref.h"
+#include "tfile.h"
+#include "asffile.h"
+#include "vorbisfile.h"
+#include "mpegfile.h"
+#include "flacfile.h"
+#include "oggflacfile.h"
+#include "mpcfile.h"
+#include "wavpackfile.h"
+#include "speexfile.h"
+#include "trueaudiofile.h"
+#include "mp4file.h"
+#include "tag.h"
+#include <cstring>
+#include "id3v2framefactory.h"
+#include "tpropertymap.h"
 
 #include "tag_c.h"
 
@@ -135,13 +136,13 @@ BOOL taglib_file_is_valid(const TagLib_File *file)
 
 TagLib_Tag *taglib_file_tag(const TagLib_File *file)
 {
-  const File *f = reinterpret_cast<const File *>(file);
+  auto f = reinterpret_cast<const File *>(file);
   return reinterpret_cast<TagLib_Tag *>(f->tag());
 }
 
 const TagLib_AudioProperties *taglib_file_audioproperties(const TagLib_File *file)
 {
-  const File *f = reinterpret_cast<const File *>(file);
+  auto f = reinterpret_cast<const File *>(file);
   return reinterpret_cast<const TagLib_AudioProperties *>(f->audioProperties());
 }
 
@@ -258,7 +259,7 @@ void taglib_tag_free_strings()
   if(!stringManagementEnabled)
     return;
 
-  for(List<char *>::ConstIterator it = strings.begin(); it != strings.end(); ++it)
+  for(auto it = strings.cbegin(); it != strings.cend(); ++it)
     free(*it);
   strings.clear();
 }
@@ -269,25 +270,25 @@ void taglib_tag_free_strings()
 
 int taglib_audioproperties_length(const TagLib_AudioProperties *audioProperties)
 {
-  const AudioProperties *p = reinterpret_cast<const AudioProperties *>(audioProperties);
-  return p->length();
+  auto p = reinterpret_cast<const AudioProperties *>(audioProperties);
+  return p->lengthInSeconds();
 }
 
 int taglib_audioproperties_bitrate(const TagLib_AudioProperties *audioProperties)
 {
-  const AudioProperties *p = reinterpret_cast<const AudioProperties *>(audioProperties);
+  auto p = reinterpret_cast<const AudioProperties *>(audioProperties);
   return p->bitrate();
 }
 
 int taglib_audioproperties_samplerate(const TagLib_AudioProperties *audioProperties)
 {
-  const AudioProperties *p = reinterpret_cast<const AudioProperties *>(audioProperties);
+  auto p = reinterpret_cast<const AudioProperties *>(audioProperties);
   return p->sampleRate();
 }
 
 int taglib_audioproperties_channels(const TagLib_AudioProperties *audioProperties)
 {
-  const AudioProperties *p = reinterpret_cast<const AudioProperties *>(audioProperties);
+  auto p = reinterpret_cast<const AudioProperties *>(audioProperties);
   return p->channels();
 }
 
@@ -312,4 +313,105 @@ void taglib_id3v2_set_default_text_encoding(TagLib_ID3v2_Encoding encoding)
   }
 
   ID3v2::FrameFactory::instance()->setDefaultTextEncoding(type);
+}
+
+
+/******************************************************************************
+ * Properties API
+ ******************************************************************************/
+namespace {
+
+void _taglib_property_set(TagLib_File *file, const char* prop, const char* value, bool append)
+{
+  if(file == NULL || prop == NULL)
+    return;
+
+  auto tfile = reinterpret_cast<File *>(file);
+  PropertyMap map = tfile->tag()->properties();
+
+  if(value) {
+    auto property = map.find(prop);
+    if(property == map.end()) {
+      map.insert(prop, StringList(value));
+    }
+    else {
+      if(append) {
+        property->second.append(value);
+      }
+      else {
+        property->second = StringList(value);
+      }
+    }
+  }
+  else {
+    map.erase(prop);
+  }
+
+  tfile->setProperties(map);
+}
+
+}  // namespace
+
+void taglib_property_set(TagLib_File *f, const char *prop, const char *value)
+{
+  _taglib_property_set(f, prop, value, false);
+}
+
+void taglib_property_set_append(TagLib_File *f, const char *prop, const char *value)
+{
+  _taglib_property_set(f, prop, value, true);
+}
+
+char** taglib_property_keys(TagLib_File *file)
+{
+  if(file == NULL)
+    return NULL;
+
+  const PropertyMap map = reinterpret_cast<const File *>(file)->properties();
+  if(map.isEmpty())
+    return NULL;
+
+  auto props = static_cast<char **>(malloc(sizeof(char *) * (map.size() + 1)));
+  char **pp = props;
+
+  for(const auto &i : map) {
+    *pp++ = stringToCharArray(i.first);
+  }
+  *pp = NULL;
+
+  return props;
+}
+
+char **taglib_property_get(TagLib_File *file, const char *prop)
+{
+  if(file == NULL || prop == NULL)
+    return NULL;
+
+  const PropertyMap map = reinterpret_cast<const File *>(file)->properties();
+
+  auto property = map.find(prop);
+  if(property == map.end())
+    return NULL;
+
+  auto props = static_cast<char **>(malloc(sizeof(char *) * (property->second.size() + 1)));
+  char **pp = props;
+
+  for(const auto &i : property->second) {
+    *pp++ = stringToCharArray(i);
+  }
+  *pp = NULL;
+
+  return props;
+}
+
+void taglib_property_free(char **props)
+{
+  if(props == NULL)
+    return;
+
+  char **p = props;
+  while(*p) {
+      free(*p++);
+  }
+  free(props);
 }

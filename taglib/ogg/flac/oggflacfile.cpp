@@ -23,14 +23,15 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tstring.h>
-#include <tdebug.h>
-#include <tpropertymap.h>
-#include <tagutils.h>
-
-#include <xiphcomment.h>
 #include "oggflacfile.h"
+
+#include "tbytevector.h"
+#include "tstring.h"
+#include "tdebug.h"
+#include "tpropertymap.h"
+#include "tagutils.h"
+
+#include "xiphcomment.h"
 
 using namespace TagLib;
 using TagLib::FLAC::Properties;
@@ -39,8 +40,8 @@ class Ogg::FLAC::File::FilePrivate
 {
 public:
   FilePrivate() :
-    comment(0),
-    properties(0),
+    comment(nullptr),
+    properties(nullptr),
     streamStart(0),
     streamLength(0),
     scanned(false),
@@ -53,13 +54,16 @@ public:
     delete properties;
   }
 
+  FilePrivate(const FilePrivate &) = delete;
+  FilePrivate &operator=(const FilePrivate &) = delete;
+
   Ogg::XiphComment *comment;
 
   Properties *properties;
   ByteVector streamInfoData;
   ByteVector xiphCommentData;
-  long streamStart;
-  long streamLength;
+  offset_t streamStart;
+  offset_t streamLength;
   bool scanned;
 
   bool hasXiphComment;
@@ -85,7 +89,7 @@ bool Ogg::FLAC::File::isSupported(IOStream *stream)
 Ogg::FLAC::File::File(FileName file, bool readProperties,
                       Properties::ReadStyle propertiesStyle) :
   Ogg::File(file),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties, propertiesStyle);
@@ -94,16 +98,13 @@ Ogg::FLAC::File::File(FileName file, bool readProperties,
 Ogg::FLAC::File::File(IOStream *stream, bool readProperties,
                       Properties::ReadStyle propertiesStyle) :
   Ogg::File(stream),
-  d(new FilePrivate())
+  d(std::make_unique<FilePrivate>())
 {
   if(isOpen())
     read(readProperties, propertiesStyle);
 }
 
-Ogg::FLAC::File::~File()
-{
-  delete d;
-}
+Ogg::FLAC::File::~File() = default;
 
 Ogg::XiphComment *Ogg::FLAC::File::tag() const
 {
@@ -206,7 +207,7 @@ ByteVector Ogg::FLAC::File::xiphCommentData()
   return d->xiphCommentData;
 }
 
-long Ogg::FLAC::File::streamLength()
+offset_t Ogg::FLAC::File::streamLength()
 {
   scan();
   return d->streamLength;
@@ -223,7 +224,7 @@ void Ogg::FLAC::File::scan()
     return;
 
   int ipacket = 0;
-  long overhead = 0;
+  offset_t overhead = 0;
 
   ByteVector metadataHeader = packet(ipacket);
   if(metadataHeader.isEmpty())

@@ -24,14 +24,14 @@
  ***************************************************************************/
 
 #include <string>
-#include <stdio.h>
-#include <id3v2tag.h>
-#include <infotag.h>
-#include <tbytevectorlist.h>
-#include <tbytevectorstream.h>
-#include <tfilestream.h>
-#include <tpropertymap.h>
-#include <wavfile.h>
+#include <cstdio>
+#include "id3v2tag.h"
+#include "infotag.h"
+#include "tbytevectorlist.h"
+#include "tbytevectorstream.h"
+#include "tfilestream.h"
+#include "tpropertymap.h"
+#include "wavfile.h"
 #include <cppunit/extensions/HelperMacros.h>
 #include "plainfile.h"
 #include "utils.h"
@@ -182,7 +182,7 @@ public:
     }
     {
       RIFF::WAV::File f2(newname.c_str());
-      CPPUNIT_ASSERT_EQUAL((unsigned int)3, f2.ID3v2Tag()->header()->majorVersion());
+      CPPUNIT_ASSERT_EQUAL(static_cast<unsigned int>(3), f2.ID3v2Tag()->header()->majorVersion());
       CPPUNIT_ASSERT_EQUAL(String("Artist A"), f2.tag()->artist());
       CPPUNIT_ASSERT_EQUAL(xxx, f2.tag()->title());
     }
@@ -268,7 +268,7 @@ public:
     ScopedFileCopy copy("duplicate_tags", ".wav");
 
     RIFF::WAV::File f(copy.fileName().c_str());
-    CPPUNIT_ASSERT_EQUAL(17052L, f.length());
+    CPPUNIT_ASSERT_EQUAL(static_cast<offset_t>(17052), f.length());
 
     // duplicate_tags.wav has duplicate ID3v2/INFO tags.
     // title() returns "Title2" if can't skip the second tag.
@@ -280,8 +280,8 @@ public:
     CPPUNIT_ASSERT_EQUAL(String("Title1"), f.InfoTag()->title());
 
     f.save();
-    CPPUNIT_ASSERT_EQUAL(15898L, f.length());
-    CPPUNIT_ASSERT_EQUAL(-1L, f.find("Title2"));
+    CPPUNIT_ASSERT_EQUAL(static_cast<offset_t>(15898), f.length());
+    CPPUNIT_ASSERT_EQUAL(static_cast<offset_t>(-1), f.find("Title2"));
   }
 
   void testFuzzedFile1()

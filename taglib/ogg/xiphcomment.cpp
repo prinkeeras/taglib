@@ -23,12 +23,13 @@
  *   http://www.mozilla.org/MPL/                                           *
  ***************************************************************************/
 
-#include <tbytevector.h>
-#include <tdebug.h>
+#include "xiphcomment.h"
 
-#include <flacpicture.h>
-#include <xiphcomment.h>
-#include <tpropertymap.h>
+#include "tbytevector.h"
+#include "tdebug.h"
+
+#include "flacpicture.h"
+#include "tpropertymap.h"
 
 using namespace TagLib;
 
@@ -39,7 +40,7 @@ namespace
 
   typedef List<FLAC::Picture *> PictureList;
   typedef PictureList::Iterator PictureIterator;
-  typedef PictureList::Iterator PictureConstIterator;
+  typedef PictureList::ConstIterator PictureConstIterator;
 } // namespace
 
 class Ogg::XiphComment::XiphCommentPrivate
@@ -61,20 +62,17 @@ public:
 ////////////////////////////////////////////////////////////////////////////////
 
 Ogg::XiphComment::XiphComment() :
-  d(new XiphCommentPrivate())
+  d(std::make_unique<XiphCommentPrivate>())
 {
 }
 
 Ogg::XiphComment::XiphComment(const ByteVector &data) :
-  d(new XiphCommentPrivate())
+  d(std::make_unique<XiphCommentPrivate>())
 {
   parse(data);
 }
 
-Ogg::XiphComment::~XiphComment()
-{
-  delete d;
-}
+Ogg::XiphComment::~XiphComment() = default;
 
 String Ogg::XiphComment::title() const
 {
@@ -191,19 +189,14 @@ void Ogg::XiphComment::setTrack(unsigned int i)
 
 bool Ogg::XiphComment::isEmpty() const
 {
-  for(FieldConstIterator it = d->fieldListMap.begin(); it != d->fieldListMap.end(); ++it) {
-    if(!(*it).second.isEmpty())
-      return false;
-  }
-
-  return true;
+  return std::all_of(d->fieldListMap.begin(), d->fieldListMap.end(), [](const auto &field) { return field.second.isEmpty(); });
 }
 
 unsigned int Ogg::XiphComment::fieldCount() const
 {
   unsigned int count = 0;
 
-  for(FieldConstIterator it = d->fieldListMap.begin(); it != d->fieldListMap.end(); ++it)
+  for(auto it = d->fieldListMap.cbegin(); it != d->fieldListMap.cend(); ++it)
     count += (*it).second.size();
 
   count += d->pictureList.size();
@@ -225,17 +218,16 @@ PropertyMap Ogg::XiphComment::setProperties(const PropertyMap &properties)
 {
   // check which keys are to be deleted
   StringList toRemove;
-  for(FieldConstIterator it = d->fieldListMap.begin(); it != d->fieldListMap.end(); ++it)
+  for(auto it = d->fieldListMap.cbegin(); it != d->fieldListMap.cend(); ++it)
     if (!properties.contains(it->first))
       toRemove.append(it->first);
 
-  for(StringList::ConstIterator it = toRemove.begin(); it != toRemove.end(); ++it)
+  for(auto it = toRemove.cbegin(); it != toRemove.cend(); ++it)
       removeFields(*it);
 
   // now go through keys in \a properties and check that the values match those in the xiph comment
   PropertyMap invalid;
-  PropertyMap::ConstIterator it = properties.begin();
-  for(; it != properties.end(); ++it)
+  for(auto it = properties.begin(); it != properties.end(); ++it)
   {
     if(!checkKey(it->first))
       invalid.insert(it->first, it->second);
@@ -246,7 +238,7 @@ PropertyMap Ogg::XiphComment::setProperties(const PropertyMap &properties)
         removeFields(it->first);
       else {
         // replace all strings in the list for the tag
-        StringList::ConstIterator valueIterator = sl.begin();
+        auto valueIterator = sl.begin();
         addField(it->first, *valueIterator, true);
         ++valueIterator;
         for(; valueIterator != sl.end(); ++valueIterator)
@@ -264,12 +256,7 @@ bool Ogg::XiphComment::checkKey(const String &key)
 
   // A key may consist of ASCII 0x20 through 0x7D, 0x3D ('=') excluded.
 
-  for(String::ConstIterator it = key.begin(); it != key.end(); it++) {
-      if(*it < 0x20 || *it > 0x7D || *it == 0x3D)
-        return false;
-  }
-
-  return true;
+  return std::none_of(key.begin(), key.end(), [](auto c) { return c < 0x20 || c > 0x7D || c == 0x3D; });
 }
 
 String Ogg::XiphComment::vendorID() const
@@ -293,14 +280,6 @@ void Ogg::XiphComment::addField(const String &key, const String &value, bool rep
     d->fieldListMap[upperKey].append(value);
 }
 
-void Ogg::XiphComment::removeField(const String &key, const String &value)
-{
-  if(!value.isNull())
-    removeFields(key, value);
-  else
-    removeFields(key);
-}
-
 void Ogg::XiphComment::removeFields(const String &key)
 {
   d->fieldListMap.erase(key.upper());
@@ -309,7 +288,7 @@ void Ogg::XiphComment::removeFields(const String &key)
 void Ogg::XiphComment::removeFields(const String &key, const String &value)
 {
   StringList &fields = d->fieldListMap[key.upper()];
-  for(StringList::Iterator it = fields.begin(); it != fields.end(); ) {
+  for(auto it = fields.begin(); it != fields.end(); ) {
     if(*it == value)
       it = fields.erase(it);
     else
@@ -329,7 +308,7 @@ bool Ogg::XiphComment::contains(const String &key) const
 
 void Ogg::XiphComment::removePicture(FLAC::Picture *picture, bool del)
 {
-  PictureIterator it = d->pictureList.find(picture);
+  auto it = d->pictureList.find(picture);
   if(it != d->pictureList.end())
     d->pictureList.erase(it);
 
@@ -350,11 +329,6 @@ void Ogg::XiphComment::addPicture(FLAC::Picture * picture)
 List<FLAC::Picture *> Ogg::XiphComment::pictureList()
 {
   return d->pictureList;
-}
-
-ByteVector Ogg::XiphComment::render() const
-{
-  return render(true);
 }
 
 ByteVector Ogg::XiphComment::render(bool addFramingBit) const
@@ -379,16 +353,14 @@ ByteVector Ogg::XiphComment::render(bool addFramingBit) const
   // std::pair<String, StringList> where the first String is the field name and
   // the StringList is the values associated with that field.
 
-  FieldListMap::ConstIterator it = d->fieldListMap.begin();
-  for(; it != d->fieldListMap.end(); ++it) {
+  for(auto it = d->fieldListMap.cbegin(); it != d->fieldListMap.cend(); ++it) {
 
     // And now iterate over the values of the current list.
 
     String fieldName = (*it).first;
-    StringList values = (*it).second;
+    const StringList values = (*it).second;
 
-    StringList::ConstIterator valuesIt = values.begin();
-    for(; valuesIt != values.end(); ++valuesIt) {
+    for(auto valuesIt = values.begin(); valuesIt != values.end(); ++valuesIt) {
       ByteVector fieldData = fieldName.data(String::UTF8);
       fieldData.append('=');
       fieldData.append((*valuesIt).data(String::UTF8));
@@ -398,7 +370,7 @@ ByteVector Ogg::XiphComment::render(bool addFramingBit) const
     }
   }
 
-  for(PictureConstIterator it = d->pictureList.begin(); it != d->pictureList.end(); ++it) {
+  for(auto it = d->pictureList.cbegin(); it != d->pictureList.cend(); ++it) {
     ByteVector picture = (*it)->render().toBase64();
     data.append(ByteVector::fromUInt(picture.size() + 23, false));
     data.append("METADATA_BLOCK_PICTURE=");
@@ -485,7 +457,7 @@ void Ogg::XiphComment::parse(const ByteVector &data)
 
         // Decode FLAC Picture
 
-        FLAC::Picture * picture = new FLAC::Picture();
+        auto picture = new FLAC::Picture();
         if(picture->parse(picturedata)) {
           d->pictureList.append(picture);
         }
@@ -498,7 +470,7 @@ void Ogg::XiphComment::parse(const ByteVector &data)
 
         // Assume it's some type of image file
 
-        FLAC::Picture * picture = new FLAC::Picture();
+        auto picture = new FLAC::Picture();
         picture->setData(picturedata);
         picture->setMimeType("image/");
         picture->setType(FLAC::Picture::Other);
